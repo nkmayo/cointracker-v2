@@ -1,0 +1,15 @@
+ADA:
+  decimals: 6
+  fungible: true
+  name: Cardano
+  ticker: ADA
+ETH:
+  decimals: 18
+  fungible: true
+  name: Ethereum
+  ticker: ETH
+USD:
+  decimals: 2
+  fungible: true
+  name: US Dollar
+  ticker: USD
