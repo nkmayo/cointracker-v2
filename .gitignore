@@ -7,7 +7,8 @@
 !registry.yaml
 !CoinGeckoIDs.json
 
-# Helper files
+# Helper files and folders
+**/backup
 **.vs
 **.vscode
 **pytest**
@@ -15,3 +16,4 @@
 **.egg**
 **.code-workspace
 **.tar**
+**.tox**
