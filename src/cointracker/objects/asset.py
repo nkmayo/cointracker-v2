@@ -30,6 +30,12 @@ class Asset:
     def smallest_unit(self):
         return 10 ** (-self.decimals)
 
+    def is_asset(self, string: str) -> bool:
+        """Returns true if the input string matches the `Asset` name or ticker."""
+        is_name = self.name.lower() == string.lower()
+        is_ticker = self.ticker.lower() == string.lower()
+        return is_name | is_ticker
+
     def to_dict(self):
         return asdict(self)
 
