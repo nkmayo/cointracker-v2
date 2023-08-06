@@ -1,4 +1,4 @@
-Date(UTC),Market,Type,Price,Amount,Total,Fee,Fee Coin,Market 1 USD Spot Price,Market 2 USD Spot Price,Fee Coin USD Spot Price
+Date(UTC),Market,Type,Price,Amount,Total,Fee,Fee Asset,Market 1 Fiat Spot Price,Market 2 Fiat Spot Price,Fee Asset Fiat Spot Price
 1/29/2022,ETH-USD,BUY,1000,5,5000,0,USD,1000,1,1
 1/30/2022,ETH-USD,BUY,1100,5,5500,0,USD,1100,1,1
 2/8/2022,ETH-USD,SELL,1000,6,6000,0,USD,1000,1,1
