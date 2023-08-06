@@ -5,6 +5,7 @@ import datetime
 from dateutil import parser
 from cointracker.objects.orderbook import Order, OrderBook
 from cointracker.objects.asset import AssetRegistry
+from cointracker.objects.enumerated_values import TransactionType
 from cointracker.pricing.getAssetPrice import getAssetPrice
 from cointracker.util.util import identifyAssets
 
@@ -36,9 +37,9 @@ def parse_orderbook(filename, sheet):
     # Lets clean up the order book by combining small orders that occurred at
     # the same time and averaging their cost
     partialOrderNum = 1
-    avg1USDspot = np.nan
-    avg2USDspot = np.nan
-    feeUSDspot = np.nan
+    avg_1_spot_fiat = np.nan
+    avg_2_spot_fiat = np.nan
+    fee_spot_fiat = np.nan
 
     for index, _ in df.iterrows():
         # possible matches are orders occurring on the same day
@@ -68,13 +69,13 @@ def parse_orderbook(filename, sheet):
                 avgPrice = total / netAmount
                 # weight the avg price by the amounts
                 weights = tempMergers["Amount"] / tempMergers["Amount"].sum(min_count=1)
-                avg1USDspot = (tempMergers["Market 1 USD Spot Price"] * weights).sum(
-                    min_count=1
-                )
-                avg2USDspot = (tempMergers["Market 2 USD Spot Price"] * weights).sum(
-                    min_count=1
-                )
-                feeUSDspot = (tempMergers["Fee Coin USD Spot Price"] * weights).sum(
+                avg_1_spot_fiat = (
+                    tempMergers["Market 1 Fiat Spot Price"] * weights
+                ).sum(min_count=1)
+                avg_2_spot_fiat = (
+                    tempMergers["Market 2 Fiat Spot Price"] * weights
+                ).sum(min_count=1)
+                fee_spot_fiat = (tempMergers["Fee Coin Fiat Spot Price"] * weights).sum(
                     min_count=1
                 )
 
@@ -83,9 +84,9 @@ def parse_orderbook(filename, sheet):
                 df.loc[indicies, "Amount"] = netAmount
                 # later becomes redundant... df.loc[index, 'Total'] = total
                 df.loc[indicies, "Fee"] = netFee
-                df.loc[indicies, "Market 1 USD Spot Price"] = avg1USDspot
-                df.loc[indicies, "Market 2 USD Spot Price"] = avg2USDspot
-                df.loc[indicies, "Fee Coin USD Spot Price"] = feeUSDspot
+                df.loc[indicies, "Market 1 Fiat Spot Price"] = avg_1_spot_fiat
+                df.loc[indicies, "Market 2 Fiat Spot Price"] = avg_2_spot_fiat
+                df.loc[indicies, "Fee Coin Fiat Spot Price"] = fee_spot_fiat
 
                 # duplicate to the other rows in tempMergers
                 df[potMergersMask] = df.loc[index, :]
@@ -114,14 +115,14 @@ def parse_orderbook(filename, sheet):
         [asset1, _, asset2, _, _] = identifyAssets(dfmissing.loc[index:index])
         date = dfmissing.loc[index, "Date(UTC)"]
         # replace each missing value in the row
-        if np.isnan(dfmissing.loc[index, "Market 1 USD Spot Price"]):
-            df.loc[index, "Market 1 USD Spot Price"] = getAssetPrice(
+        if np.isnan(dfmissing.loc[index, "Market 1 Fiat Spot Price"]):
+            df.loc[index, "Market 1 Fiat Spot Price"] = getAssetPrice(
                 asset1, date
             )  # df has same indicies
-        if np.isnan(dfmissing.loc[index, "Market 2 USD Spot Price"]):
-            df.loc[index, "Market 2 USD Spot Price"] = getAssetPrice(asset2, date)
-        if np.isnan(dfmissing.loc[index, "Fee Coin USD Spot Price"]):
-            df.loc[index, "Fee Coin USD Spot Price"] = getAssetPrice(
+        if np.isnan(dfmissing.loc[index, "Market 2 Fiat Spot Price"]):
+            df.loc[index, "Market 2 Fiat Spot Price"] = getAssetPrice(asset2, date)
+        if np.isnan(dfmissing.loc[index, "Fee Coin Fiat Spot Price"]):
+            df.loc[index, "Fee Coin Fiat Spot Price"] = getAssetPrice(
                 dfmissing.loc[index, "Fee Coin"], date
             )
     print("Prices updated")
@@ -151,15 +152,15 @@ def orderbook_from_df(dataframe: pd.DataFrame, registry: AssetRegistry):
                 date=date,
                 market_1=asset1,
                 market_2=asset2,
-                kind=row["Type"],
+                kind=TransactionType.from_str(row["Type"]),
                 price=row["Price"],
                 amount=row["Amount"],
                 # total is a property, not taken from the dataframe
                 fee=row["Fee"],
-                fee_coin=row["Fee Coin"],
-                spot_1=row["Market 1 USD Spot Price"],
-                spot_2=row["Market 2 USD Spot Price"],
-                fee_spot=row["Fee Coin USD Spot Price"],
+                fee_asset=row["Fee Coin"],
+                spot_1_fiat=row["Market 1 Fiat Spot Price"],
+                spot_2_fiat=row["Market 2 Fiat Spot Price"],
+                fee_spot_fiat=row["Fee Coin Fiat Spot Price"],
             )
         )
 
@@ -169,7 +170,7 @@ def orderbook_from_df(dataframe: pd.DataFrame, registry: AssetRegistry):
 def split_markets_str(markets: str):
     if "-" not in markets:
         asset1 = markets
-        asset2 = "USD"
+        asset2 = "Fiat"
     else:
         asset1, asset2 = markets.split("-")
 
@@ -192,7 +193,7 @@ def orderbook_header():
         "Total",
         "Fee",
         "Fee Coin",
-        "Market 1 USD Spot Price",
-        "Market 2 USD Spot Price",
-        "Fee Coin USD Spot Price",
+        "Market 1 Fiat Spot Price",
+        "Market 2 Fiat Spot Price",
+        "Fee Coin Fiat Spot Price",
     ]
