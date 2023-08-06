@@ -50,7 +50,7 @@ def parse_orderbook(filename, sheet):
             )
             & (df["Market"] == df.loc[index, "Market"])
             & (df["Type"] == df.loc[index, "Type"])
-            & (df["Fee Coin"] == df.loc[index, "Fee Coin"])
+            & (df["Fee Asset"] == df.loc[index, "Fee Asset"])
         )
         tempMergers = df[potMergersMask]
         numPartialOrders = len(tempMergers)
@@ -75,9 +75,9 @@ def parse_orderbook(filename, sheet):
                 avg_2_spot_fiat = (
                     tempMergers["Market 2 Fiat Spot Price"] * weights
                 ).sum(min_count=1)
-                fee_spot_fiat = (tempMergers["Fee Coin Fiat Spot Price"] * weights).sum(
-                    min_count=1
-                )
+                fee_spot_fiat = (
+                    tempMergers["Fee Asset Fiat Spot Price"] * weights
+                ).sum(min_count=1)
 
                 # set average values
                 df.loc[indicies, "Price"] = avgPrice
@@ -86,7 +86,7 @@ def parse_orderbook(filename, sheet):
                 df.loc[indicies, "Fee"] = netFee
                 df.loc[indicies, "Market 1 Fiat Spot Price"] = avg_1_spot_fiat
                 df.loc[indicies, "Market 2 Fiat Spot Price"] = avg_2_spot_fiat
-                df.loc[indicies, "Fee Coin Fiat Spot Price"] = fee_spot_fiat
+                df.loc[indicies, "Fee Asset Fiat Spot Price"] = fee_spot_fiat
 
                 # duplicate to the other rows in tempMergers
                 df[potMergersMask] = df.loc[index, :]
@@ -121,9 +121,9 @@ def parse_orderbook(filename, sheet):
             )  # df has same indicies
         if np.isnan(dfmissing.loc[index, "Market 2 Fiat Spot Price"]):
             df.loc[index, "Market 2 Fiat Spot Price"] = getAssetPrice(asset2, date)
-        if np.isnan(dfmissing.loc[index, "Fee Coin Fiat Spot Price"]):
-            df.loc[index, "Fee Coin Fiat Spot Price"] = getAssetPrice(
-                dfmissing.loc[index, "Fee Coin"], date
+        if np.isnan(dfmissing.loc[index, "Fee Asset Fiat Spot Price"]):
+            df.loc[index, "Fee Asset Fiat Spot Price"] = getAssetPrice(
+                dfmissing.loc[index, "Fee Asset"], date
             )
     print("Prices updated")
 
@@ -157,10 +157,10 @@ def orderbook_from_df(dataframe: pd.DataFrame, registry: AssetRegistry):
                 amount=row["Amount"],
                 # total is a property, not taken from the dataframe
                 fee=row["Fee"],
-                fee_asset=row["Fee Coin"],
+                fee_asset=row["Fee Asset"],
                 spot_1_fiat=row["Market 1 Fiat Spot Price"],
                 spot_2_fiat=row["Market 2 Fiat Spot Price"],
-                fee_spot_fiat=row["Fee Coin Fiat Spot Price"],
+                fee_spot_fiat=row["Fee Asset Fiat Spot Price"],
             )
         )
 
@@ -192,8 +192,8 @@ def orderbook_header():
         "Amount",
         "Total",
         "Fee",
-        "Fee Coin",
+        "Fee Asset",
         "Market 1 Fiat Spot Price",
         "Market 2 Fiat Spot Price",
-        "Fee Coin Fiat Spot Price",
+        "Fee Asset Fiat Spot Price",
     ]
