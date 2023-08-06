@@ -6,6 +6,8 @@ from datetime import datetime
 from dataclasses import dataclass, asdict, field
 import yaml
 
+FIAT_CURRENCIES = ("USD", "EUR", "GBP", "AUD")  # Add support for other fiat currencies
+
 dataclass_kw = {"frozen": True, "order": True}
 if sys.version_info[:2] >= (3, 10):
     dataclass_kw["slots"] = True  # speed improvement if >= Python 3.10
@@ -29,6 +31,10 @@ class Asset:
     @property
     def smallest_unit(self):
         return 10 ** (-self.decimals)
+
+    @property
+    def is_fiat(self) -> bool:
+        return is_asset_fiat(self.ticker)
 
     def is_asset(self, string: str) -> bool:
         """Returns true if the input string matches the `Asset` name or ticker."""
@@ -139,6 +145,11 @@ def import_registry(filename):
     assets = [asset_from_dict(asset) for _, asset in registry.items()]
 
     return AssetRegistry(assets)
+
+
+def is_asset_fiat(asset_ticker: str) -> bool:
+    """Returns `True` if the asset ticker is in the list of known fiat currencies."""
+    return asset_ticker.upper() in FIAT_CURRENCIES
 
 
 # %%
