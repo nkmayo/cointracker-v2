@@ -9,7 +9,7 @@ from itertools import count
 
 @dataclass
 class Sale:
-    poolID: int = field(init=False, default_factory=count().__next__)
+    id: int = field(init=False, default_factory=count().__next__)
     asset_sold: Asset
     asset_received: Asset
     purchase_date: datetime
@@ -21,7 +21,7 @@ class Sale:
     fee: float
     fee_coin: Asset
     fee_spot: float
-    fee_usd: float
+    fee_fiat: float
     purchase_pool_id: int
     holding_period: timedelta
     long: bool
@@ -48,27 +48,45 @@ class Sale:
 
 @dataclass
 class Pool:
-    poolID: int = field(init=False, default_factory=count().__next__)
-    asset_sold: Asset
-    asset_received: Asset
+    id: int = field(init=False, default_factory=count().__next__)
+    asset: Asset
+    amount: float  # convert to int with market1 units?
     purchase_date: datetime
-    sale_date: datetime
-    amount: float  # convert to int with market1 units
-    sale_price: float
-    asset_sold_spot: float
-    asset_recieved_spot: float
-    fee: float
-    fee_coin: Asset
-    fee_spot: float
-    fee_usd: float
-    purchase_pool_id: int
-    holding_period: timedelta
-    long: bool
-    proceeds: float
-    cost_basis: float
-    wash_pool_id: int
-    disallowed_loss: float
-    net_gain: float
+    purchase_price_fiat: float
+    purchase_fee_fiat: float
+    sale_date: datetime = None
+    sale_price_fiat: float = None
+    sale_fee_fiat: float = None
+    wash_pool_id: int = None
+    disallowed_loss: float = 0
+
+    @property
+    def holding_period(self) -> timedelta:
+        assert self.sale_date >= self.purchase_date, "Sale must occur after purchase"
+        return self.sale_date - self.purchase_date
+
+    @property
+    def holdings_type(self) -> bool:
+        return self.holding_period >= timedelta(days=366)
+
+    @property
+    def holdings_type_str(self):
+        if self.holdings_type:
+            return "LONG-TERM"
+        else:
+            return "SHORT-TERM"
+
+    @property
+    def cost_basis(self):
+        return self.purchase_price_fiat - self.purchase_fee_fiat
+
+    @property
+    def proceeds(self):
+        return self.sale_price_fiat - self.sale_fee_fiat
+
+    @property
+    def net_gain(self):
+        return self.proceeds - self.cost_basis - self.disallowed_loss
 
 
 # %%
@@ -86,7 +104,7 @@ def getEmptySalePool():
         "Fee",
         "Fee Coin",
         "Fee Coin Spot Price",
-        "Fee USD",
+        "Fee Fiat",
         "Purchase Pool ID",
         "Holding Period",
         "Long",
@@ -109,7 +127,7 @@ def getEmptySalePool():
         "Fee": "float64",
         "Fee Coin": "object",
         "Fee Coin Spot Price": "float64",
-        "Fee USD": "float64",
+        "Fee Fiat": "float64",
         "Purchase Pool ID": "int64",
         "Holding Period": "timedelta64[ns]",
         "Long": "bool",
@@ -137,7 +155,7 @@ def getEmptyPurchasePool():
         "Fee",
         "Fee Coin",
         "Fee Coin Spot Price",
-        "Fee USD",
+        "Fee Fiat",
         "Initiates Wash",
         "Holding Period Modifier",
         "Cost Basis",
@@ -153,7 +171,7 @@ def getEmptyPurchasePool():
         "Fee": "float64",
         "Fee Coin": "object",
         "Fee Coin Spot Price": "float64",
-        "Fee USD": "float64",
+        "Fee Fiat": "float64",
         "Initiates Wash": "bool",
         "Holding Period Modifier": "timedelta64[ns]",
         "Cost Basis": "float64",
@@ -175,9 +193,9 @@ def getEmptyOrder():
         "Total",
         "Fee",
         "Fee Coin",
-        "Market 1 USD Spot Price",
-        "Market 2 USD Spot Price",
-        "Fee Coin USD Spot Price",
+        "Market 1 Fiat Spot Price",
+        "Market 2 Fiat Spot Price",
+        "Fee Coin Fiat Spot Price",
     ]
     typeDict = {
         "Date(UTC)": "datetime64[ns, UTC]",
@@ -188,11 +206,14 @@ def getEmptyOrder():
         "Total": "float64",
         "Fee": "float64",
         "Fee Coin": "object",
-        "Market 1 USD Spot Price": "float64",
-        "Market 2 USD Spot Price": "float64",
-        "Fee Coin USD Spot Price": "float64",
+        "Market 1 Fiat Spot Price": "float64",
+        "Market 2 Fiat Spot Price": "float64",
+        "Fee Coin Fiat Spot Price": "float64",
     }
     purchasePool = pd.DataFrame(columns=pCols)
     purchasePool = purchasePool.astype(typeDict)
 
     return purchasePool
+
+
+# %%
