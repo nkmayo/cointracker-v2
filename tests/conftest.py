@@ -2,7 +2,9 @@ import pytest
 from cointracker.objects.asset import Asset, AssetRegistry, import_registry
 from cointracker.objects.orderbook import Order, OrderBook
 from cointracker.util.parsing import orderbook_from_df, parse_orderbook
-from cointracker.objects.pool import Sale, Pool
+from cointracker.process.transact import split_order
+
+# from cointracker.objects.pool import Sale, Pool
 from cointracker.settings.config import read_config
 
 sheet = "Sheet1"
@@ -25,3 +27,12 @@ def load_simple_order():
 @pytest.fixture(scope="session")
 def simple_orderbook():
     return load_simple_order()
+
+
+if __name__ == "__main__":
+    ob = load_simple_order()
+    for order in ob:
+        buy_pool, sell_txn = split_order(order)
+        print(f"buy_pool: {buy_pool}\nsell_txn: {sell_txn}")
+
+# Create Balance Object?
