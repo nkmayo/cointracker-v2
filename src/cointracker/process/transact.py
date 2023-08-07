@@ -1,8 +1,31 @@
+import logging
+
 from cointracker.objects.orderbook import Order, OrderBook, Transaction
 from cointracker.objects.asset import Asset, AssetRegistry
-from cointracker.objects.pool import Pool
-from cointracker.objects.enumerated_values import TransactionType
+from cointracker.objects.pool import Pool, Pools
+from cointracker.objects.enumerated_values import TransactionType, OrderingStrategy
 from cointracker.process.conversions import fiat_equivalent
+
+
+def execute_order(order: Order, pools: Pools, strategy: OrderingStrategy):
+    logging.debug(f"executing order with strategy {strategy}")
+    buy_txn, sell_txn = split_order(order=order)
+
+    # Add the buy pool to Pools after executing the sell side
+    buy_pool = Pool(
+        asset=buy_txn.asset,
+        amount=buy_txn.amount,
+        purchase_date=buy_txn.date,
+        purchase_price_fiat=buy_txn.amount_fiat,
+        purchase_fee_fiat=buy_txn.fee_fiat,
+    )
+
+    if pools is None:
+        pools = Pools(pools=[buy_pool])
+    else:
+        pools = pools + buy_pool
+
+    return pools
 
 
 def split_order(order: Order):
@@ -19,12 +42,12 @@ def split_order(order: Order):
             sell_txn.fee == 0
         ), "Fees must be associated with token purchases/sales, not fiat purchases/sales"
 
-    buy_pool = Pool(
-        asset=buy_txn.asset,
-        amount=buy_txn.amount,
-        purchase_date=buy_txn.date,
-        purchase_price_fiat=buy_txn.amount_fiat,
-        purchase_fee_fiat=buy_txn.fee_fiat,
-    )
+    # buy_pool = Pool(
+    #     asset=buy_txn.asset,
+    #     amount=buy_txn.amount,
+    #     purchase_date=buy_txn.date,
+    #     purchase_price_fiat=buy_txn.amount_fiat,
+    #     purchase_fee_fiat=buy_txn.fee_fiat,
+    # )
 
-    return buy_pool, sell_txn
+    return buy_txn, sell_txn
