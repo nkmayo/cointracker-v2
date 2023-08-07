@@ -1,7 +1,7 @@
 # %%
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
+import datetime
 from dataclasses import dataclass, field
 from cointracker.objects.asset import Asset
 from itertools import count
@@ -12,8 +12,8 @@ class Sale:
     id: int = field(init=False, default_factory=count().__next__)
     asset_sold: Asset
     asset_received: Asset
-    purchase_date: datetime
-    sale_date: datetime
+    purchase_date: datetime.datetime
+    sale_date: datetime.datetime
     amount: float  # convert to int with market1 units
     sale_price: float
     asset_sold_spot: float
@@ -23,7 +23,7 @@ class Sale:
     fee_spot: float
     fee_fiat: float
     purchase_pool_id: int
-    holding_period: timedelta
+    holding_period: datetime.timedelta
     long: bool
     proceeds: float
     cost_basis: float
@@ -51,23 +51,26 @@ class Pool:
     id: int = field(init=False, default_factory=count().__next__)
     asset: Asset
     amount: float  # convert to int with market1 units?
-    purchase_date: datetime
+    purchase_date: datetime.datetime
     purchase_price_fiat: float
     purchase_fee_fiat: float
-    sale_date: datetime = None
+    sale_date: datetime.datetime = None
     sale_price_fiat: float = None
     sale_fee_fiat: float = None
     wash_pool_id: int = None
     disallowed_loss: float = 0
 
+    def __repr__(self) -> str:
+        return f"Pool(id: {self.id}, purchase date: {self.purchase_date}, asset: {self.asset.ticker}, amount: {self.amount})"
+
     @property
-    def holding_period(self) -> timedelta:
+    def holding_period(self) -> datetime.timedelta:
         assert self.sale_date >= self.purchase_date, "Sale must occur after purchase"
         return self.sale_date - self.purchase_date
 
     @property
     def holdings_type(self) -> bool:
-        return self.holding_period >= timedelta(days=366)
+        return self.holding_period >= datetime.timedelta(days=366)
 
     @property
     def holdings_type_str(self):
@@ -87,6 +90,127 @@ class Pool:
     @property
     def net_gain(self):
         return self.proceeds - self.cost_basis - self.disallowed_loss
+
+    @property
+    def closed(self) -> bool:
+        if self.sale_date is None:
+            return False
+        else:
+            return True
+
+    @property
+    def open(self) -> bool:
+        return not self.closed
+
+    @property
+    def is_wash(self) -> bool:
+        if self.wash_pool_id is None:
+            return False
+        else:
+            return True
+
+
+@dataclass
+class Pools:
+    pools: list[Pool] = field(default_factory=list, repr=False)
+    _iter_idx: int = field(init=False, repr=False)
+
+    def __len__(self) -> int:
+        return len(self.pools)
+
+    def __repr__(self) -> str:
+        start = datetime.datetime(
+            year=9999, month=12, day=31, tzinfo=datetime.timezone.utc
+        )
+        end = datetime.datetime(year=1900, month=1, day=1, tzinfo=datetime.timezone.utc)
+        for pool in self.pools:
+            if pool.purchase_date < start:
+                start = pool.purchase_date
+            if pool.purchase_date > end:
+                end = pool.purchase_date
+            if pool.sale_date is not None:
+                if pool.sale_date < start:
+                    start = pool.sale_date
+                if pool.sale_date > end:
+                    end = pool.sale_date
+
+        start = start.strftime("%Y/%m/%d")
+        end = end.strftime("%Y/%m/%d")
+        return f"Pools(size: {len(self)}, dates: {start}-{end})"
+
+    def __add__(self, item):
+        if isinstance(item, Pools):
+            combined_pools = [*self.pools, *item.pools]
+            return Pools(combined_pools)
+        if isinstance(item, list):
+            assert [
+                isinstance(i, Pool) for i in item
+            ].all(), f"Pools appending to `Pools` must be all be of `Pool` type"
+
+            combined_pools = [*self.pools, *item]
+            return Pools(combined_pools)
+        elif isinstance(item, Pool):
+            combined_pools = [*self.pools, item]
+            return Pools(combined_pools)
+        else:
+            raise TypeError(f"")
+
+    def __iter__(self):
+        self._iter_idx = 0
+        return self
+
+    def __next__(self):
+        if self._iter_idx < len(self):
+            i = self._iter_idx
+            self._iter_idx += 1
+            return self.pools[i]
+        else:
+            raise StopIteration
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            start, stop, step = key.indices(len(self))
+            return self.pools[start:stop:step]
+        elif isinstance(key, int):
+            return self.pools[key]
+        elif isinstance(key, str):
+            asset = None
+            for asset_in_registry in self:
+                if asset_in_registry.name == key or asset_in_registry.ticker == key:
+                    asset = asset_in_registry
+            if asset is None:
+                raise ValueError(f"{key} not found in `AssetRegistry`")
+            else:
+                return asset
+        else:
+            raise TypeError(f"Invalid argument type: {type(key)}")
+
+    def sort(self, ascending: bool = True, inplace: bool = False, by: str = "purchase"):
+        """Sorts the Pools by date. `acending=True` sorts oldest to newest. `inplace` can be specified to
+        apply the sorted result to the underlying instance."""
+        if ascending:
+            pools = sorted(self.pools)
+        else:
+            pools = sorted(self.pools, reverse=True)
+
+        if inplace:
+            self.pools = pools
+            sorted_pools = self
+        else:
+            sorted_pools = Pools(pools=pools)
+
+        return sorted_pools
+
+    def to_df(self, ascending=True):
+        """Converts the `Pools` object into a pandas DataFrame. Sorts orders by ascending date if `ascending=True`,
+        descending date if `ascending=False` or does not change the ordering indicies if `ascending=None`.
+        """
+        df = pd.DataFrame([pool.to_series() for pool in self])
+        if ascending is not None:
+            df.sort_values(
+                by="Date(UTC)", ascending=ascending, ignore_index=True, inplace=True
+            )
+        return df
 
 
 # %%
