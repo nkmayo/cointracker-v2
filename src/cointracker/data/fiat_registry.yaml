@@ -1,0 +1,16 @@
+USD:
+  decimals: 2
+  name: United States Dollar
+  ticker: USD
+GBP:
+  decimals: 2
+  name: British Pound Sterling
+  ticker: GBP
+EUR:
+  decimals: 2
+  name: Euro
+  ticker: EUR
+AUD:
+  decimals: 2
+  name: Australian Dollar
+  ticker: AUD

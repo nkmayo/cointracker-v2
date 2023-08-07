@@ -4,7 +4,7 @@
 # Don't upload personal saved data
 **/data/*
 # Except for CoinGeckoIDs and the registry
-!registry.yaml
+!**registry.yaml
 !CoinGeckoIDs.json
 
 # Helper files and folders

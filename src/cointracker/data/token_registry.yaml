@@ -8,8 +8,3 @@ ETH:
   fungible: true
   name: Ethereum
   ticker: ETH
-USD:
-  decimals: 2
-  fungible: true
-  name: US Dollar
-  ticker: USD
