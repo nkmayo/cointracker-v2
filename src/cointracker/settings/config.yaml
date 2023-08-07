@@ -1,3 +1,10 @@
 paths:
   data: ../data
   tests: ../../../tests
+
+processing:
+  ordering_strategy: "lifo"
+  load_existing_pools: False
+  start_date: ""  # YY/MM/DD
+  end_date: ""    # YY/MM/DD
+  filing_years: [2021, 2022]
