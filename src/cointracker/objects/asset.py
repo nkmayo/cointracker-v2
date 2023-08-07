@@ -4,9 +4,10 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
+
+from cointracker.settings.config import fiat_currencies
 import yaml
 
-FIAT_CURRENCIES = ("USD", "EUR", "GBP", "AUD")  # Add support for other fiat currencies
 
 dataclass_kw = {"frozen": True, "order": True}
 if sys.version_info[:2] >= (3, 10):
@@ -34,7 +35,9 @@ class Asset:
 
     @property
     def is_fiat(self) -> bool:
-        return is_asset_fiat(self.ticker)
+        return is_asset_fiat(
+            self.ticker
+        )  # TODO: creates circular reference if fiat currencies are imported from an AssetRegistry?
 
     def is_asset(self, string: str) -> bool:
         """Returns true if the input string matches the `Asset` name or ticker."""
@@ -130,6 +133,8 @@ class AssetRegistry:
 
 
 def asset_from_dict(dictionary):
+    if "fungible" not in dictionary:
+        dictionary["fungible"] = True  # fiat may not specify fungibility
     return Asset(
         name=dictionary["name"],
         ticker=dictionary["ticker"],
@@ -149,7 +154,7 @@ def import_registry(filename):
 
 def is_asset_fiat(asset_ticker: str) -> bool:
     """Returns `True` if the asset ticker is in the list of known fiat currencies."""
-    return asset_ticker.upper() in FIAT_CURRENCIES
+    return asset_ticker.upper() in fiat_currencies()
 
 
 # %%
