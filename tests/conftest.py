@@ -16,8 +16,11 @@ def load_simple_order():
     sheetname = "Sheet1"
     # order_df = pd.read_csv(filename, parse_dates=["Date(UTC)"])
     # print(f"{order_df}\n{order_df.dtypes}")
-    registry_file = cfg.paths.data / "registry.yaml"
-    registry = import_registry(filename=registry_file)
+    registry_file = cfg.paths.data / "token_registry.yaml"
+    token_registry = import_registry(filename=registry_file)
+    registry_file = cfg.paths.data / "fiat_registry.yaml"
+    fiat_registry = import_registry(filename=registry_file)
+    registry = token_registry + fiat_registry
     order_df = parse_orderbook(filename, sheetname)
     orderbook = orderbook_from_df(order_df, registry=registry)
 
