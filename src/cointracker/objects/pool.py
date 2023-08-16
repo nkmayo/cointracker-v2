@@ -61,7 +61,7 @@ class Pool:
     disallowed_loss: float = 0
 
     def __repr__(self) -> str:
-        return f"Pool(id: {self.id}, purchase date: {self.purchase_date.strftime('%Y/%m/%d')}, asset: {self.asset.ticker}, amount: {self.amount}, cost: {self.amount})"
+        return f"Pool(\nid: {self.id}, \npurchase date: {self.purchase_date.strftime('%Y/%m/%d')}, \nasset: {self.asset.ticker}, \namount: {self.amount}, \ncost_fiat: {self.purchase_cost_fiat}, \nsale_fiat: {self.sale_value_fiat}\n)\n\n"
 
     @property
     def holding_period(self) -> datetime.timedelta:
