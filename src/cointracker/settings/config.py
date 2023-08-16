@@ -34,7 +34,7 @@ def read_config(filepath: str = None) -> Config:
     if filepath is None:
         filepath = (Path(__file__).parents[1] / "settings/config.yaml").resolve()
 
-    print(f"{filepath=}")
+    # print(f"{filepath=}")
     with open(filepath) as file:
         settings = yaml.safe_load(file)
 
