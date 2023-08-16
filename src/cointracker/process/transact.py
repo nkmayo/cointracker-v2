@@ -151,12 +151,6 @@ def execute_sell(
             sell_txn.amount_fiat == assert_test
         ), "sale_cost_fiat should be the previous amount * matched_fraction"
 
-        matched_pool.purchase_cost_fiat = (
-            matched_pool.purchase_cost_fiat * matched_fraction
-        )
-        matched_pool.purchase_fee_fiat = (
-            matched_pool.purchase_fee_fiat * matched_fraction
-        )
         matched_pool.sale_date = sell_txn.date
         matched_pool.sale_value_fiat = sell_txn.amount_fiat
         matched_pool.sale_fee_fiat = (
