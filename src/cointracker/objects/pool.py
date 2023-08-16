@@ -58,7 +58,7 @@ class Pool:
     sale_value_fiat: float = None
     sale_fee_fiat: float = None
     wash_pool_id: int = None
-    disallowed_loss: float = 0
+    disallowed_loss: float = 0.0
 
     def __repr__(self) -> str:
         return f"Pool(\nid: {self.id}, \npurchase date: {self.purchase_date.strftime('%Y/%m/%d')}, \nasset: {self.asset.ticker}, \namount: {self.amount}, \ncost_fiat: {self.purchase_cost_fiat}, \nsale_fiat: {self.sale_value_fiat}\n)\n\n"
@@ -138,6 +138,17 @@ class Pool:
             wash_pool_id=self.wash_pool_id,
             disallowed_loss=self.disallowed_loss,
         )
+
+    def set_dtypes(self):
+        self.amount = float(self.amount)
+        self.purchase_date = self.purchase_date.replace(tzinfo=datetime.timezone.utc)
+        self.purchase_cost_fiat = np.round(self.purchase_cost_fiat, decimals=2)
+        self.purchase_fee_fiat = np.round(self.purchase_fee_fiat, decimals=2)
+        if self.sale_date is not None:
+            self.sale_date = self.sale_date.replace(tzinfo=datetime.timezone.utc)
+            self.sale_value_fiat = np.round(self.sale_value_fiat, decimals=2)
+            self.sale_fee_fiat = np.round(self.sale_fee_fiat, decimals=2)
+            self.disallowed_loss = float(self.disallowed_loss)
 
 
 @dataclass
