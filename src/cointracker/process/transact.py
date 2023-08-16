@@ -116,6 +116,7 @@ def execute_sell(
         #     sell_txn.amount == matched_pool.amount * matched_fraction
         # ), f"sale amount ({sell_txn.amount}) should equal pool_amount * matched_fraction ({matched_pool.amount * matched_fraction})"
 
+        excess_pool.set_dtypes()
         pool_reg = pool_reg + excess_pool
 
         matched_pool.amount = (
@@ -160,6 +161,7 @@ def execute_sell(
         #     f"matched_pool closed, seeking additonal pool for the remaining ({remaining_txn.amount})"
         # )
 
+    matched_pool.set_dtypes()
     # logging.debug(f"matched_pool:\n{matched_pool}")
     # Update the pool registry with the new pool after the sale
     idx = pool_reg.idx_for_id(matched_pool.id)
