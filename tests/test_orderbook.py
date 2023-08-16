@@ -1,5 +1,8 @@
 from cointracker.objects.orderbook import Order, OrderBook
+from cointracker.objects.enumerated_values import OrderingStrategy
+from cointracker.process.execute import execute_order
 import pandas as pd
+import datetime
 
 
 def test_simple_orderbook_creation(simple_orderbook) -> None:
@@ -44,3 +47,45 @@ def test_simple_orderbook_to_df_descending(simple_orderbook) -> None:
             assert (
                 prev_date >= date
             ), f"Incorrect descending ordering at index {i} and date {date}"
+
+
+def test_simple_orderbook_execution_fifo(simple_orderbook) -> None:
+    """This orderbook consists of 4 orders, 2 buys and 2 sells. The 2 sells close out all positions (sell all of the ETH bought).
+    When executed in FIFO, the 2 sells split the 2 pools into 3 as the first sale for 6 ETH closes out the first pool and also a
+    portion (1 ETH) from the second pool. The last sell then closes out the last remaining open pool with 4 ETH.
+
+    BUY 5 ETH at 1000 USD each for 5000 USD (id 0)
+    BUY 5 ETH at 1100 USD each for 5500 USD (id 1)
+    SELL 6 ETH at 1000 USD each for 6000 USD
+        - SELL 5 ETH at 1000 USD each for 5000 USD
+            Close id 0 with $0 net gain
+        - SELL 1 ETH at 1000 USD each for 1000 USD
+            id 1 has 1 ETH at 1100 USD each for 1100 USD (id 1)
+            Close id 1 with -100 USD net gain
+            id 2 has 4 ETH at 1100 USD each for 4400 USD (id 2)
+    SELL 4 ETH at 1200 USD each for 4800 USD
+        Close id 2 with 400 USD net gain
+
+    """
+    pool_reg = None
+    for (
+        order
+    ) in simple_orderbook:  # default orderbook is already sorted by ascending date
+        pool_reg = execute_order(order, pools=pool_reg, strategy=OrderingStrategy.FIFO)
+
+    pool_reg.sort(by="sale", ascending=True)  # most recent sales at the bottom
+    print([pool for pool in pool_reg])
+    assert len(pool_reg.open_pools) == 0, "All pools in registry should be closed"
+    assert pool_reg[0].amount == 5, "First pool to be closed out amount is 5"
+    assert pool_reg[0].purchase_date == datetime.datetime(
+        2022, 1, 29, tzinfo=datetime.timezone.utc
+    ), "First pool to be closed purchase_date is 2022/01/29"
+    assert (
+        pool_reg[0].purchase_cost_fiat == 5000
+    ), "First pool to be closed cost 5000 USD"
+    assert pool_reg[0].sale_date == datetime.datetime(
+        2022, 2, 8, tzinfo=datetime.timezone.utc
+    ), "First pool to be closed sale_date is 2022/02/08"
+    assert (
+        pool_reg[0].sale_value_fiat == 5000
+    ), "First pool to be closed sold for 5000 USD"
