@@ -34,9 +34,9 @@ def run():
     # #     oBook = pd.read_csv(filename, parse_dates=["Date(UTC)"])
     # %%
     ob = load_simple_order()
-    pools = execute_orderbook(orderbook=ob, pools=None)
+    pool_reg = execute_orderbook(orderbook=ob, pool_reg=None)
 
-    print(f"Pools:\n{pools}")
+    print(f"Pools:\n{[pool for pool in pool_reg]}")
 
     startDate = cfg.processing.start_date
     endDate = cfg.processing.end_date

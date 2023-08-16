@@ -7,7 +7,9 @@ from cointracker.objects.enumerated_values import TransactionType, OrderingStrat
 from cointracker.process.conversions import fiat_equivalent
 
 
-def execute_order(order: Order, pools: PoolRegistry, strategy: OrderingStrategy):
+def execute_order(
+    order: Order, pools: PoolRegistry, strategy: OrderingStrategy
+) -> PoolRegistry:
     print(f"\n\n")
     logging.debug(f"executing order {order} with strategy {strategy}")
     logging.debug(f"---Initial pools list: {pools}")
@@ -54,7 +56,7 @@ def split_order(order: Order):
 
 def execute_sell(
     sell_txn: Transaction, pool_reg: PoolRegistry, strategy: OrderingStrategy
-) -> None:
+) -> PoolRegistry:
     print(f"entered execute_sell : {pool_reg}")
     """Executes the sale side of an order using the specified `strategy`."""
     candidate_pools = pool_reg.pools_with(sell_txn.asset, open=True)
@@ -115,7 +117,6 @@ def execute_sell(
         # ), f"sale amount ({sell_txn.amount}) should equal pool_amount * matched_fraction ({matched_pool.amount * matched_fraction})"
 
         pool_reg = pool_reg + excess_pool
-        pool_reg._iter_idx = 0
 
         matched_pool.amount = (
             sell_txn.amount
@@ -180,7 +181,5 @@ def execute_sell(
         pool_reg = execute_sell(
             sell_txn=remaining_txn, pool_reg=pool_reg, strategy=strategy
         )
-
-    pool_reg._iter_idx = 0
 
     return pool_reg
