@@ -52,10 +52,10 @@ class Pool:
     asset: Asset
     amount: float  # convert to int with market1 units?
     purchase_date: datetime.datetime
-    purchase_price_fiat: float
+    purchase_cost_fiat: float
     purchase_fee_fiat: float
     sale_date: datetime.datetime = None
-    sale_price_fiat: float = None
+    sale_value_fiat: float = None
     sale_fee_fiat: float = None
     wash_pool_id: int = None
     disallowed_loss: float = 0
@@ -81,11 +81,11 @@ class Pool:
 
     @property
     def cost_basis(self):
-        return self.purchase_price_fiat - self.purchase_fee_fiat
+        return self.purchase_cost_fiat - self.purchase_fee_fiat
 
     @property
     def proceeds(self):
-        return self.sale_price_fiat - self.sale_fee_fiat
+        return self.sale_value_fiat - self.sale_fee_fiat
 
     @property
     def net_gain(self):
@@ -109,9 +109,23 @@ class Pool:
         else:
             return True
 
+    def copy(self):
+        return Pool(
+            asset=self.asset,
+            amount=self.amount,
+            purchase_date=self.purchase_date,
+            purchase_cost_fiat=self.purchase_cost_fiat,
+            purchase_fee_fiat=self.purchase_fee_fiat,
+            sale_date=self.sale_date,
+            sale_value_fiat=self.sale_value_fiat,
+            sale_fee_fiat=self.sale_fee_fiat,
+            wash_pool_id=self.wash_pool_id,
+            disallowed_loss=self.disallowed_loss,
+        )
+
 
 @dataclass
-class Pools:
+class PoolRegistry:
     pools: list[Pool] = field(default_factory=list, repr=False)
     _iter_idx: int = field(init=False, repr=False)
 
@@ -136,22 +150,22 @@ class Pools:
 
         start = start.strftime("%Y/%m/%d")
         end = end.strftime("%Y/%m/%d")
-        return f"Pools(size: {len(self)}, dates: {start}-{end})"
+        return f"PoolRegistry(size: {len(self)}, open: {len(self.open_pools)}, closed: {len(self.closed_pools)}, dates: {start}-{end})"
 
     def __add__(self, item):
-        if isinstance(item, Pools):
+        if isinstance(item, PoolRegistry):
             combined_pools = [*self.pools, *item.pools]
-            return Pools(combined_pools)
+            return PoolRegistry(combined_pools)
         if isinstance(item, list):
             assert [
                 isinstance(i, Pool) for i in item
-            ].all(), f"Pools appending to `Pools` must be all be of `Pool` type"
+            ].all(), f"Pools appending to `PoolRegistry` must be all be of `Pool` type"
 
             combined_pools = [*self.pools, *item]
-            return Pools(combined_pools)
+            return PoolRegistry(combined_pools)
         elif isinstance(item, Pool):
             combined_pools = [*self.pools, item]
-            return Pools(combined_pools)
+            return PoolRegistry(combined_pools)
         else:
             raise TypeError(f"")
 
@@ -185,24 +199,39 @@ class Pools:
         else:
             raise TypeError(f"Invalid argument type: {type(key)}")
 
-    def sort(self, ascending: bool = True, inplace: bool = False, by: str = "purchase"):
-        """Sorts the Pools by date. `acending=True` sorts oldest to newest. `inplace` can be specified to
-        apply the sorted result to the underlying instance."""
-        if ascending:
-            pools = sorted(self.pools)
-        else:
-            pools = sorted(self.pools, reverse=True)
+    @property
+    def closed_pools(self):
+        return PoolRegistry([pool for pool in self if pool.closed])
 
-        if inplace:
-            self.pools = pools
-            sorted_pools = self
-        else:
-            sorted_pools = Pools(pools=pools)
+    @property
+    def open_pools(self):
+        return PoolRegistry([pool for pool in self if pool.open])
 
-        return sorted_pools
+    def idx_for_id(self, id: int):
+        """Returns the index (as currently sorted) within the `pools` list of the pool with id `id`."""
+        return np.argmin([abs(pool.id - id) for pool in self])
+
+    def pools_with(self, asset: Asset, open: bool = None):
+        """Returns the subset of pools with asset matching `asset`. If `open=None` all matching pools are returned. If
+        `open=True` then only open pools are returned. If `open=False` then only closed pools are returned.
+        """
+        subset = PoolRegistry([pool for pool in self if pool.asset == asset])
+        if open is None:
+            pass
+        elif open:
+            subset = subset.open_pools
+        else:
+            subset = subset.closed_pools
+
+        return subset
+
+    def sort(self, by: str = "purchase", ascending: bool = True) -> None:
+        """Sorts the pools in the `PoolRegistry` in place by date. `acending=True` sorts oldest to newest."""
+        pool_reg = sort_pools(self, by=by, ascending=ascending)
+        self.pools = pool_reg.pools
 
     def to_df(self, ascending=True):
-        """Converts the `Pools` object into a pandas DataFrame. Sorts orders by ascending date if `ascending=True`,
+        """Converts the `PoolRegistry` object into a pandas DataFrame. Sorts orders by ascending date if `ascending=True`,
         descending date if `ascending=False` or does not change the ordering indicies if `ascending=None`.
         """
         df = pd.DataFrame([pool.to_series() for pool in self])
@@ -211,6 +240,36 @@ class Pools:
                 by="Date(UTC)", ascending=ascending, ignore_index=True, inplace=True
             )
         return df
+
+
+def sort_pools(
+    pool_reg: PoolRegistry, by: str = "purchase", ascending: bool = True
+) -> PoolRegistry:
+    """Sorts the pools in the `PoolRegistry` by date. `acending=True` sorts oldest to newest. `inplace` can be specified to
+    apply the sorted result to the underlying instance."""
+    pools = pool_reg.pools
+    if by == "purchase":
+        if ascending:
+            pools = sorted(pools, key=lambda x: x.purchase_date)
+        else:
+            pools = sorted(pools, key=lambda x: x.purchase_date, reverse=True)
+    elif by == "sale":
+        # Can't sort `None` type so first separate open pools with no `sale_date`
+        open_pools = [pool for pool in pools if pool.open]
+        closed_pools = [pool for pool in pools if pool.closed]
+        if ascending:
+            closed_pools = sorted(closed_pools, key=lambda x: x.sale_date)
+            open_pools = sorted(open_pools, key=lambda x: x.purchase_date)
+        else:
+            closed_pools = sorted(closed_pools, key=lambda x: x.sale_date, reverse=True)
+            open_pools = sorted(open_pools, key=lambda x: x.purchase_date, reverse=True)
+
+        pools = [*closed_pools, *open_pools]  # append open pools to   the end
+    else:
+        raise ValueError(f"Unrecognized sort argument `by={by}`.")
+    sorted_pools = PoolRegistry(pools=pools)
+
+    return sorted_pools
 
 
 # %%
