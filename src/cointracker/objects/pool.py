@@ -61,20 +61,30 @@ class Pool:
     disallowed_loss: float = 0
 
     def __repr__(self) -> str:
-        return f"Pool(id: {self.id}, purchase date: {self.purchase_date}, asset: {self.asset.ticker}, amount: {self.amount})"
+        return f"Pool(id: {self.id}, purchase date: {self.purchase_date.strftime('%Y/%m/%d')}, asset: {self.asset.ticker}, amount: {self.amount}, cost: {self.amount})"
 
     @property
     def holding_period(self) -> datetime.timedelta:
-        assert self.sale_date >= self.purchase_date, "Sale must occur after purchase"
-        return self.sale_date - self.purchase_date
+        if self.open:
+            return None
+        else:
+            assert (
+                self.sale_date >= self.purchase_date
+            ), "Sale must occur after purchase"
+            return self.sale_date - self.purchase_date
 
     @property
     def holdings_type(self) -> bool:
-        return self.holding_period >= datetime.timedelta(days=366)
+        if self.open:
+            return None
+        else:
+            return self.holding_period >= datetime.timedelta(days=366)
 
     @property
     def holdings_type_str(self):
-        if self.holdings_type:
+        if self.open:
+            return None
+        elif self.holdings_type:
             return "LONG-TERM"
         else:
             return "SHORT-TERM"
@@ -85,11 +95,17 @@ class Pool:
 
     @property
     def proceeds(self):
-        return self.sale_value_fiat - self.sale_fee_fiat
+        if self.open:
+            return None
+        else:
+            return self.sale_value_fiat - self.sale_fee_fiat
 
     @property
     def net_gain(self):
-        return self.proceeds - self.cost_basis - self.disallowed_loss
+        if self.open:
+            return None
+        else:
+            return self.proceeds - self.cost_basis - self.disallowed_loss
 
     @property
     def closed(self) -> bool:
@@ -265,11 +281,15 @@ def sort_pools(
             open_pools = sorted(open_pools, key=lambda x: x.purchase_date, reverse=True)
 
         pools = [*closed_pools, *open_pools]  # append open pools to   the end
+    elif by == "asset":
+        if ascending:
+            pools = sorted(pools, key=lambda x: x.asset.ticker)
+        else:
+            pools = sorted(pools, key=lambda x: x.asset.ticker, reverse=True)
     else:
         raise ValueError(f"Unrecognized sort argument `by={by}`.")
-    sorted_pools = PoolRegistry(pools=pools)
 
-    return sorted_pools
+    return PoolRegistry(pools=pools)
 
 
 # %%
