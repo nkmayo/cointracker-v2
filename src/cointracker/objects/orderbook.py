@@ -301,6 +301,18 @@ class Transaction:
         d = self.date.strftime("%Y/%m/%d")
         return f"{d} {self.market} {self.kind} {self.amount} {self.asset_spot_fiat} {self.amount_fiat}"
 
+    def copy(self):
+        return Transaction(
+            date=self.date,
+            asset=self.asset,
+            kind=self.kind,
+            amount=self.amount,
+            asset_spot_fiat=self.asset_spot_fiat,
+            fee=self.fee,
+            fee_asset=self.fee_asset,
+            fee_spot_fiat=self.fee_spot_fiat,
+        )
+
     def to_series(self):
         """Returns the object as a pandas series"""
         series = {
