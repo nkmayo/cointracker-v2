@@ -61,7 +61,14 @@ class Pool:
     disallowed_loss: float = 0.0
 
     def __repr__(self) -> str:
-        return f"Pool(\nid: {self.id}, \npurchase date: {self.purchase_date.strftime('%Y/%m/%d')}, \nasset: {self.asset.ticker}, \namount: {self.amount}, \ncost_fiat: {self.purchase_cost_fiat}, \nsale_fiat: {self.sale_value_fiat}\n)\n\n"
+        if self.sale_date is None:
+            sale_date = "None"
+        else:
+            sale_date = self.sale_date.strftime("%Y/%m/%d")
+
+        return f"Pool(\nid: {self.id}, \npurchase date: {self.purchase_date.strftime('%Y/%m/%d')}, \nsale date: {sale_date}, \
+                \nasset: {self.asset.ticker}, \namount: {self.amount}, \ncost_fiat: {self.purchase_cost_fiat}, \
+                \nsale_fiat: {self.sale_value_fiat}\n)\n\n"
 
     @property
     def holding_period(self) -> datetime.timedelta:
@@ -233,6 +240,22 @@ class PoolRegistry:
     @property
     def open_pools(self):
         return PoolRegistry([pool for pool in self if pool.open])
+
+    @property
+    def proceeds(self):
+        return sum([pool.proceeds for pool in self])
+
+    @property
+    def cost_basis(self):
+        return sum([pool.cost_basis for pool in self])
+
+    @property
+    def disallowed_loss(self):
+        return sum([pool.disallowed_loss for pool in self])
+
+    @property
+    def net_gain(self):
+        return sum([pool.net_gain for pool in self])
 
     def idx_for_id(self, id: int):
         """Returns the index (as currently sorted) within the `pools` list of the pool with id `id`."""
