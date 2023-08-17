@@ -128,7 +128,7 @@ def test_simple_orderbook_execution_fifo(simple_orderbook) -> None:
     assert pool_reg.proceeds == 10800.0, "Net Proceeds should be 10800 USD"
     assert pool_reg.cost_basis == 10500.0, "Net Cost Basis should be 10500 USD"
     assert pool_reg.disallowed_loss == 0.0, "Net Disallowed Loss should be 0 USD"
-    assert pool_reg.net_gain == 300.0, "Total Net Gain should be 10800 USD"
+    assert pool_reg.net_gain == 300.0, "Total Net Gain should be 300 USD"
 
 
 def test_simple_orderbook_execution_lifo(simple_orderbook) -> None:
@@ -212,4 +212,4 @@ def test_simple_orderbook_execution_lifo(simple_orderbook) -> None:
     assert pool_reg.proceeds == 10800.0, "Net Proceeds should be 10800 USD"
     assert pool_reg.cost_basis == 10500.0, "Net Cost Basis should be 10500 USD"
     assert pool_reg.disallowed_loss == 0.0, "Net Disallowed Loss should be 0 USD"
-    assert pool_reg.net_gain == 300.0, "Total Net Gain should be 10800 USD"
+    assert pool_reg.net_gain == 300.0, "Total Net Gain should be 300 USD"
