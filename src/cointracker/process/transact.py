@@ -57,7 +57,9 @@ def split_order(order: Order):
 def execute_sell(
     sell_txn: Transaction, pool_reg: PoolRegistry, strategy: OrderingStrategy
 ) -> PoolRegistry:
-    print(f"entered execute_sell : {pool_reg}")
+    print(
+        f"entered execute_sell of asset {sell_txn.asset.ticker} and amount {sell_txn.amount}:\n{pool_reg}"
+    )
     """Executes the sale side of an order using the specified `strategy`."""
     candidate_pools = pool_reg.pools_with(sell_txn.asset, open=True)
 
@@ -108,8 +110,11 @@ def execute_sell(
             matched_pool.purchase_fee_fiat * pool_excess_fraction
         )
 
+        err = (
+            sell_txn.amount - (matched_pool.amount - matched_pool_excess_amount)
+        ) / sell_txn.amount
         assert (
-            sell_txn.amount == matched_pool.amount - matched_pool_excess_amount
+            err < 0.001
         ), f"excess_amount ({sell_txn.amount}) should equal pool.amount - txn.amount ({matched_pool.amount - matched_pool_excess_amount}) (rounding?)"
 
         # assert (
@@ -179,3 +184,81 @@ def execute_sell(
         )
 
     return pool_reg
+
+
+def sell_match(sell_txn: Transaction, matched_pool: Pool):
+    pass
+
+
+def sell_match_txn_greater_amount(sell_txn: Transaction, matched_pool: Pool):
+    # logging.debug(
+    #     f"sale_txn ({sell_txn.amount}) greater than matched_pool ({matched_pool.amount}) requires an additional pool to complete. Closing matched_pool"
+    # )
+    matched_fraction = matched_pool.amount / sell_txn.amount
+    txn_excess_fraction = 1 - matched_fraction
+
+    remaining_txn = sell_txn.copy()
+    remaining_txn.amount = remaining_sell_amount
+    remaining_txn.fee = (
+        0  # let the matched_pool contain the entirety of the fees...fewer adjustments
+    )
+
+    assert_test = sell_txn.amount_fiat * matched_fraction
+    sell_txn.amount = matched_pool.amount
+
+    assert (
+        sell_txn.amount_fiat == assert_test
+    ), "sale_cost_fiat should be the previous amount * matched_fraction"
+
+    matched_pool.sale_date = sell_txn.date
+    matched_pool.sale_value_fiat = sell_txn.amount_fiat
+    matched_pool.sale_fee_fiat = (
+        sell_txn.fee_fiat
+    )  # let the matched_pool contain the entirety of the fees...fewer adjustments
+    # logging.debug(
+    #     f"matched_pool closed, seeking additonal pool for the remaining ({remaining_txn.amount})"
+    # )
+
+
+def sell_match_pool_greater_amount(sell_txn: Transaction, matched_pool: Pool):
+    # logging.debug(
+    #     f"Matched pool has more money ({matched_pool.amount}) than the sale_txn ({sell_txn.amount})"
+    # )
+    matched_pool_excess_amount = (
+        -remaining_sell_amount
+    )  # renaming the negative for clarity
+    pool_excess_fraction = matched_pool_excess_amount / matched_pool.amount
+    matched_fraction = 1 - pool_excess_fraction
+
+    excess_pool = matched_pool.copy()
+    print(
+        f"excess pool asset {excess_pool.asset}\nmatched_pool asset: {matched_pool.asset}"
+    )
+    excess_pool.amount = matched_pool_excess_amount
+    excess_pool.purchase_cost_fiat = (
+        matched_pool.purchase_cost_fiat * pool_excess_fraction
+    )
+    excess_pool.purchase_fee_fiat = (
+        matched_pool.purchase_fee_fiat * pool_excess_fraction
+    )
+
+    err = (
+        sell_txn.amount - (matched_pool.amount - matched_pool_excess_amount)
+    ) / sell_txn.amount
+    assert (
+        err < 0.001
+    ), f"excess_amount ({sell_txn.amount}) should equal pool.amount - txn.amount ({matched_pool.amount - matched_pool_excess_amount}) (rounding?)"
+
+    # assert (
+    #     sell_txn.amount == matched_pool.amount * matched_fraction
+    # ), f"sale amount ({sell_txn.amount}) should equal pool_amount * matched_fraction ({matched_pool.amount * matched_fraction})"
+
+    excess_pool.set_dtypes()
+    pool_reg = pool_reg + excess_pool
+
+    matched_pool.amount = sell_txn.amount  # same as matched_amount * matched_fraction
+    matched_pool.purchase_cost_fiat = matched_pool.purchase_cost_fiat * matched_fraction
+    matched_pool.purchase_fee_fiat = matched_pool.purchase_fee_fiat * matched_fraction
+    matched_pool.sale_date = sell_txn.date
+    matched_pool.sale_value_fiat = sell_txn.amount_fiat
+    matched_pool.sale_fee_fiat = sell_txn.fee_fiat
