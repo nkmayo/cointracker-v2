@@ -243,19 +243,19 @@ class PoolRegistry:
 
     @property
     def proceeds(self):
-        return sum([pool.proceeds for pool in self])
+        return sum([pool.proceeds for pool in self if pool.closed])
 
     @property
     def cost_basis(self):
-        return sum([pool.cost_basis for pool in self])
+        return sum([pool.cost_basis for pool in self if pool.closed])
 
     @property
     def disallowed_loss(self):
-        return sum([pool.disallowed_loss for pool in self])
+        return sum([pool.disallowed_loss for pool in self if pool.closed])
 
     @property
     def net_gain(self):
-        return sum([pool.net_gain for pool in self])
+        return sum([pool.net_gain for pool in self if pool.closed])
 
     def idx_for_id(self, id: int):
         """Returns the index (as currently sorted) within the `pools` list of the pool with id `id`."""
