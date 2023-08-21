@@ -80,15 +80,16 @@ def execute_sell(
         remaining_sell_amount = 0
         sell_txn.amount = matched_pool.amount
 
-    # if the sale amount exactly matches that in the matched pool, update and close the matched pool
     if remaining_sell_amount == 0:
+        # if the sale amount exactly matches that in the matched pool, update and close the matched pool
         logging.debug("sale amount matched exactly with pool")
         matched_pool.sale_date = sell_txn.date
         matched_pool.sale_value_fiat = sell_txn.amount_fiat
         matched_pool.sale_fee_fiat = sell_txn.fee_fiat
-    # else if the matched pool has more money than the sale_txn amount, update the matched pool
-    # and generate a new pool with the remaining balance
     elif remaining_sell_amount < 0:
+        # else if the matched pool has more money than the sale_txn amount, update the matched pool
+        # and generate a new pool with the remaining balance
+
         # logging.debug(
         #     f"Matched pool has more money ({matched_pool.amount}) than the sale_txn ({sell_txn.amount})"
         # )
@@ -136,10 +137,10 @@ def execute_sell(
         matched_pool.sale_date = sell_txn.date
         matched_pool.sale_value_fiat = sell_txn.amount_fiat
         matched_pool.sale_fee_fiat = sell_txn.fee_fiat
-
-    # else if the matched_pool has less than the sale amount, close the matched_pool and generate a new transaction
-    # with the remaining txn balance (TODO: or do you just update the existing txn?)
     else:  # remaining_sell_amount > 0
+        # else if the matched_pool has less than the sale amount, close the matched_pool and generate a new transaction
+        # with the remaining txn balance (TODO: or do you just update the existing txn?)
+
         # logging.debug(
         #     f"sale_txn ({sell_txn.amount}) greater than matched_pool ({matched_pool.amount}) requires an additional pool to complete. Closing matched_pool"
         # )
