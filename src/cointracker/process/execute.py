@@ -4,6 +4,7 @@ from cointracker.objects.pool import Pool, PoolRegistry
 from cointracker.objects.enumerated_values import TransactionType, OrderingStrategy
 from cointracker.process.conversions import fiat_equivalent
 from cointracker.process.transact import execute_order
+from cointracker.process.wash import execute_washes
 from cointracker.settings.config import read_config
 
 
@@ -20,5 +21,8 @@ def execute_orderbook(
         pool_reg = execute_order(
             order, pools=pool_reg, strategy=cfg.processing.ordering_strategy
         )
+
+    if cfg.processing.wash_rule:
+        pool_reg = execute_washes(pool_reg=pool_reg)
 
     return pool_reg
