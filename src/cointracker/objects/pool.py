@@ -6,44 +6,7 @@ from dataclasses import dataclass, field
 from cointracker.objects.asset import Asset
 from itertools import count
 
-
-@dataclass
-class Sale:
-    id: int = field(init=False, default_factory=count().__next__)
-    asset_sold: Asset
-    asset_received: Asset
-    purchase_date: datetime.datetime
-    sale_date: datetime.datetime
-    amount: float  # convert to int with market1 units
-    sale_price: float
-    asset_sold_spot: float
-    asset_recieved_spot: float
-    fee: float
-    fee_coin: Asset
-    fee_spot: float
-    fee_fiat: float
-    purchase_pool_id: int
-    holding_period: datetime.timedelta
-    long: bool
-    proceeds: float
-    cost_basis: float
-    wash_pool_id: int
-    disallowed_loss: float
-    net_gain: float
-
-    @property
-    def amount_base_units(self):
-        return int(self.amount / self.market1.smallest_unit)
-
-    @property
-    def rounded_amount(self):
-        return self.amount_base_units * self.market1.smallest_unit
-
-    @property
-    def total(self):
-        total = self.rounded_amount * self.price
-        # convert the total to the market2 units
-        total = int(total / self.market2.smallest_unit) * self.market2.smallest_unit
+WASH_WINDOW = datetime.timedelta(days=31)
 
 
 @dataclass
@@ -54,13 +17,14 @@ class Pool:
     purchase_date: datetime.datetime
     purchase_cost_fiat: float
     purchase_fee_fiat: float
-    wash_sale_addition_to_cost_fiat: float
     sale_date: datetime.datetime = None
     sale_value_fiat: float = None
     sale_fee_fiat: float = None
     wash_pool_id: int = None
     triggers_wash_id: int = None
+    wash_sale_addition_to_cost_fiat: float = 0.0
     disallowed_loss: float = 0.0
+    holding_period_modifier = datetime.timedelta(days=0)
 
     def __repr__(self) -> str:
         if self.sale_date is None:
@@ -80,7 +44,7 @@ class Pool:
             assert (
                 self.sale_date >= self.purchase_date
             ), "Sale must occur after purchase"
-            return self.sale_date - self.purchase_date
+            return self.sale_date - self.purchase_date + self.holding_period_modifier
 
     @property
     def holdings_type(self) -> bool:
@@ -121,6 +85,15 @@ class Pool:
             return self.proceeds - self.cost_basis - self.disallowed_loss
 
     @property
+    def potential_wash(self):
+        if self.open:
+            return False
+        elif (self.asset.fungible) & (self.net_gain < 0):
+            return True
+        else:
+            return False
+
+    @property
     def closed(self) -> bool:
         if self.sale_date is None:
             return False
@@ -145,6 +118,7 @@ class Pool:
             purchase_date=self.purchase_date,
             purchase_cost_fiat=self.purchase_cost_fiat,
             purchase_fee_fiat=self.purchase_fee_fiat,
+            wash_sale_addition_to_cost_fiat=self.wash_sale_addition_to_cost_fiat,
             sale_date=self.sale_date,
             sale_value_fiat=self.sale_value_fiat,
             sale_fee_fiat=self.sale_fee_fiat,
@@ -162,6 +136,16 @@ class Pool:
             self.sale_value_fiat = np.round(self.sale_value_fiat, decimals=2)
             self.sale_fee_fiat = np.round(self.sale_fee_fiat, decimals=2)
             self.disallowed_loss = float(self.disallowed_loss)
+
+    def within_wash_window(self, date: datetime, kind="purchase"):
+        if kind == "sale":
+            return abs(self.sale_date - date) < WASH_WINDOW
+        elif kind == "purchase":
+            return abs(self.purchase_date - date) < WASH_WINDOW
+        else:
+            raise ValueError(
+                "Unrecognized `kind` argument when calling `within_wash_window`."
+            )
 
 
 @dataclass
