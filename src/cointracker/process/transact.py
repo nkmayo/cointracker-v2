@@ -1,5 +1,5 @@
 import logging
-
+import numpy as np
 from cointracker.objects.orderbook import Order, OrderBook, Transaction
 from cointracker.objects.asset import Asset, AssetRegistry
 from cointracker.objects.pool import Pool, PoolRegistry
@@ -154,8 +154,8 @@ def execute_sell(
         assert_test = sell_txn.amount_fiat * matched_fraction
         sell_txn.amount = matched_pool.amount
 
-        assert (
-            sell_txn.amount_fiat == assert_test
+        assert np.round(sell_txn.amount_fiat, decimals=2) == np.round(
+            assert_test, decimals=2
         ), "sale_cost_fiat should be the previous amount * matched_fraction"
 
         matched_pool.sale_date = sell_txn.date
