@@ -16,6 +16,7 @@ class Paths:
 @dataclass
 class Processing:
     ordering_strategy: OrderingStrategy
+    wash_rule: bool
     load_existing_pools: bool
     start_date: datetime = None
     end_date: datetime = None

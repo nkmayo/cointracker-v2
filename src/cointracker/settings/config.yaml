@@ -4,6 +4,7 @@ paths:
 
 processing:
   ordering_strategy: "lifo"
+  wash_rule: True
   load_existing_pools: False
   start_date: ""  # YY/MM/DD
   end_date: ""    # YY/MM/DD
