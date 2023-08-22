@@ -54,10 +54,12 @@ class Pool:
     purchase_date: datetime.datetime
     purchase_cost_fiat: float
     purchase_fee_fiat: float
+    wash_sale_addition_to_cost_fiat: float
     sale_date: datetime.datetime = None
     sale_value_fiat: float = None
     sale_fee_fiat: float = None
     wash_pool_id: int = None
+    triggers_wash_id: int = None
     disallowed_loss: float = 0.0
 
     def __repr__(self) -> str:
@@ -98,7 +100,11 @@ class Pool:
 
     @property
     def cost_basis(self):
-        return self.purchase_cost_fiat - self.purchase_fee_fiat
+        return (
+            self.purchase_cost_fiat
+            + self.wash_sale_addition_to_cost_fiat
+            + self.purchase_fee_fiat
+        )
 
     @property
     def proceeds(self):
