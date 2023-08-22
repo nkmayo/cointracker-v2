@@ -2,7 +2,11 @@
 import datetime
 
 from cointracker.objects.asset import import_registry
-from cointracker.util.parsing import orderbook_from_df, parse_orderbook
+from cointracker.util.parsing import (
+    orderbook_from_df,
+    parse_orderbook,
+    load_excel_orderbook,
+)
 from cointracker.process.execute import execute_orderbook
 from cointracker.settings.config import read_config
 
@@ -33,7 +37,7 @@ def run():
     # #     )
     # #     oBook = pd.read_csv(filename, parse_dates=["Date(UTC)"])
     # %%
-    ob = load_simple_order()
+    ob = load_excel_orderbook("simple_orders.xlsx")
     pool_reg = execute_orderbook(orderbook=ob, pool_reg=None)
 
     print(f"Pools:\n{[pool for pool in pool_reg]}")
@@ -82,18 +86,3 @@ def run():
 
 
 # %%
-def load_simple_order():
-    cfg = read_config()
-    filename = cfg.paths.tests / "simple_orders.xlsx"
-    sheetname = "Sheet1"
-    # order_df = pd.read_csv(filename, parse_dates=["Date(UTC)"])
-    # print(f"{order_df}\n{order_df.dtypes}")
-    registry_file = cfg.paths.data / "token_registry.yaml"
-    token_registry = import_registry(filename=registry_file)
-    registry_file = cfg.paths.data / "fiat_registry.yaml"
-    fiat_registry = import_registry(filename=registry_file)
-    registry = token_registry + fiat_registry
-    order_df = parse_orderbook(filename, sheetname)
-    orderbook = orderbook_from_df(order_df, registry=registry)
-
-    return orderbook

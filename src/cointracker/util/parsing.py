@@ -1,13 +1,28 @@
-from pathlib import Path
 import pandas as pd
 import numpy as np
 import datetime
 from dateutil import parser
 from cointracker.objects.orderbook import Order, OrderBook
-from cointracker.objects.asset import AssetRegistry
+from cointracker.objects.asset import AssetRegistry, import_registry
 from cointracker.objects.enumerated_values import TransactionType
 from cointracker.pricing.getAssetPrice import getAssetPrice
 from cointracker.util.util import identifyAssets
+from cointracker.settings.config import read_config
+
+
+def load_excel_orderbook(file: str, sheetname: str = "Sheet1"):
+    cfg = read_config()
+    registry_file = cfg.paths.data / "token_registry.yaml"
+    token_registry = import_registry(filename=registry_file)
+    registry_file = cfg.paths.data / "fiat_registry.yaml"
+    fiat_registry = import_registry(filename=registry_file)
+    registry = token_registry + fiat_registry
+
+    filename = cfg.paths.tests / file
+    order_df = parse_orderbook(filename, sheetname)
+    orderbook = orderbook_from_df(order_df, registry=registry)
+
+    return orderbook
 
 
 def parse_orderbook(filename, sheet):
