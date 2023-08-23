@@ -21,7 +21,7 @@ def execute_washes(pool_reg: PoolRegistry) -> PoolRegistry:
 
     """
     while unmatched_washes(pool_reg=pool_reg):
-        pool_reg = pool_reg.sort(by="sale", ascending=True)
+        pool_reg.sort(by="sale", ascending=True)
         for pool in pool_reg:
             if pool.potential_wash:
                 matched_pool = find_wash_match(pool_with_loss=pool, pool_reg=pool_reg)
