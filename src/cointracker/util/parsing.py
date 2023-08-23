@@ -6,7 +6,6 @@ from cointracker.objects.orderbook import Order, OrderBook
 from cointracker.objects.asset import AssetRegistry, import_registry
 from cointracker.objects.enumerated_values import TransactionType
 from cointracker.pricing.getAssetPrice import getAssetPrice
-from cointracker.util.util import identifyAssets
 from cointracker.settings.config import read_config
 
 
@@ -127,7 +126,7 @@ def parse_orderbook(filename, sheet):
     # print(dfmissing)
 
     for index, _ in dfmissing.iterrows():
-        [asset1, _, asset2, _, _] = identifyAssets(dfmissing.loc[index:index])
+        asset1, asset2 = split_markets_str(dfmissing.loc[index, "Market"])
         date = dfmissing.loc[index, "Date(UTC)"]
         # replace each missing value in the row
         if np.isnan(dfmissing.loc[index, "Market 1 Fiat Spot Price"]):
