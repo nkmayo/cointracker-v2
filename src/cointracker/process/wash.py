@@ -71,10 +71,10 @@ def execute_wash(
 
     # Update the wash_pool and pool_that_triggered
     wash_pool.wash_pool_id = pool_that_triggered.id
-    wash_pool.disallowed_loss = wash_pool.sale_value_fiat
+    wash_pool.disallowed_loss = -wash_pool.net_gain
 
     pool_that_triggered.triggers_wash_id = wash_pool.id
-    pool_that_triggered.wash_sale_addition_to_cost_fiat = wash_pool.sale_value_fiat
+    pool_that_triggered.wash_sale_addition_to_cost_fiat = wash_pool.disallowed_loss
     pool_that_triggered.holding_period_modifier = wash_pool.holding_period
 
     # Update both pools within pool_reg

@@ -82,13 +82,14 @@ class Pool:
         if self.open:
             return None
         else:
-            return self.proceeds - self.cost_basis - self.disallowed_loss
+            # (proceeds - cost_basis) is negative if there is disallowed loss
+            return self.proceeds - self.cost_basis + self.disallowed_loss
 
     @property
     def potential_wash(self):
         if self.open:
             return False
-        elif (self.asset.fungible) & (self.net_gain < 0):
+        elif (self.asset.fungible) & (self.net_gain < 0) & (not self.is_wash):
             return True
         else:
             return False
