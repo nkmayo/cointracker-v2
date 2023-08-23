@@ -37,10 +37,11 @@ def run():
     # #     )
     # #     oBook = pd.read_csv(filename, parse_dates=["Date(UTC)"])
     # %%
-    ob = load_excel_orderbook("simple_orders.xlsx")
+    ob = load_excel_orderbook("simple_wash.xlsx")
     pool_reg = execute_orderbook(orderbook=ob, pool_reg=None)
 
     print(f"Pools:\n{[pool for pool in pool_reg]}")
+    print(f"Wash Pools:\n{[pool for pool in pool_reg if pool.is_wash]}")
 
     startDate = cfg.processing.start_date
     endDate = cfg.processing.end_date
