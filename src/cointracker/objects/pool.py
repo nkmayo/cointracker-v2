@@ -2,9 +2,9 @@
 import numpy as np
 import pandas as pd
 import datetime
+from itertools import count
 from dataclasses import dataclass, field
 from cointracker.objects.asset import Asset
-from itertools import count
 
 WASH_WINDOW = datetime.timedelta(days=31)
 
@@ -209,7 +209,7 @@ class PoolRegistry:
         if isinstance(key, slice):
             start, stop, step = key.indices(len(self))
             return self.pools[start:stop:step]
-        elif isinstance(key, int):
+        elif isinstance(key, (int, np.integer)):
             return self.pools[key]
         elif isinstance(key, str):
             asset = None
@@ -220,6 +220,15 @@ class PoolRegistry:
                 raise ValueError(f"{key} not found in `AssetRegistry`")
             else:
                 return asset
+        else:
+            raise TypeError(f"Invalid argument type: {type(key)}")
+
+    def __setitem__(self, key, value):
+        if isinstance(key, slice):
+            start, stop, step = key.indices(len(self))
+            self.pools[start:stop:step] = value
+        elif isinstance(key, (int, np.integer)):
+            self.pools[key] = value
         else:
             raise TypeError(f"Invalid argument type: {type(key)}")
 

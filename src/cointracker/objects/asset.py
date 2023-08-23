@@ -117,7 +117,7 @@ class AssetRegistry:
         if isinstance(key, slice):
             start, stop, step = key.indices(len(self))
             return self.assets[start:stop:step]
-        elif isinstance(key, int):
+        elif isinstance(key, (int, np.integer)):
             return self.assets[key]
         elif isinstance(key, str):
             asset = None
@@ -128,6 +128,15 @@ class AssetRegistry:
                 raise ValueError(f"{key} not found in `AssetRegistry`")
             else:
                 return asset
+        else:
+            raise TypeError(f"Invalid argument type: {type(key)}")
+
+    def __setitem__(self, key, value):
+        if isinstance(key, slice):
+            start, stop, step = key.indices(len(self))
+            self.assets[start:stop:step] = value
+        elif isinstance(key, (int, np.integer)):
+            self.assets[key] = value
         else:
             raise TypeError(f"Invalid argument type: {type(key)}")
 

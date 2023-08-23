@@ -220,7 +220,7 @@ class OrderBook:
         if isinstance(key, slice):
             start, stop, step = key.indices(len(self))
             return self.orders[start:stop:step]
-        elif isinstance(key, int):
+        elif isinstance(key, (int, np.integer)):
             return self.orders[key]
         elif isinstance(key, str):
             asset = None
@@ -231,6 +231,15 @@ class OrderBook:
                 raise ValueError(f"{key} not found in `AssetRegistry`")
             else:
                 return asset
+        else:
+            raise TypeError(f"Invalid argument type: {type(key)}")
+
+    def __setitem__(self, key, value):
+        if isinstance(key, slice):
+            start, stop, step = key.indices(len(self))
+            self.orders[start:stop:step] = value
+        elif isinstance(key, (int, np.integer)):
+            self.orders[key] = value
         else:
             raise TypeError(f"Invalid argument type: {type(key)}")
 
