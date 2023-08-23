@@ -70,12 +70,12 @@ def execute_wash(
         pool_reg = pool_reg + pool_remainder
 
     # Update the wash_pool and pool_that_triggered
-    wash_pool.wash_pool_id = pool_that_triggered.id
-    wash_pool.disallowed_loss = -wash_pool.net_gain
+    wash_pool.wash.triggered_by_id = pool_that_triggered.id
+    wash_pool.wash.disallowed_loss_fiat = -wash_pool.net_gain
 
-    pool_that_triggered.triggers_wash_id = wash_pool.id
-    pool_that_triggered.wash_sale_addition_to_cost_fiat = wash_pool.disallowed_loss
-    pool_that_triggered.holding_period_modifier = wash_pool.holding_period
+    pool_that_triggered.wash.triggers_id = wash_pool.id
+    pool_that_triggered.wash.addition_to_cost_fiat = wash_pool.wash.disallowed_loss_fiat
+    pool_that_triggered.wash.holding_period_modifier = wash_pool.holding_period
 
     # Update both pools within pool_reg
     wash_idx = pool_reg.idx_for_id(wash_pool.id)
@@ -101,7 +101,7 @@ def find_wash_match(pool_with_loss: Pool, pool_reg: PoolRegistry) -> Pool:
         )
         after_loss_sale = pool.purchase_date > loss_sale_date
         matched_assets = pool.asset == pool_with_loss.asset
-        not_already_paired = pool.triggers_wash_id is None
+        not_already_paired = pool.wash.triggers_id is None
 
         if all(
             (within_wash_window, after_loss_sale, matched_assets, not_already_paired)

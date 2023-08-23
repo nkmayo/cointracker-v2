@@ -20,7 +20,7 @@ def amount_from_price_total(spot: float, total: float, asset: Asset, market_num:
 def split_pool(pool: Pool, retained_fraction: float):
     assert not pool.is_wash, "Pools already in a wash sale cannot be additionally split"
     assert (
-        pool.triggers_wash_id is None
+        pool.wash.triggers_id is None
     ), "Pools that have already triggered a wash sale cannot be additonally split"
     fragment_fraction = 1 - retained_fraction
 

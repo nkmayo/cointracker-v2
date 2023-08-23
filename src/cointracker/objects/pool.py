@@ -10,6 +10,24 @@ WASH_WINDOW = datetime.timedelta(days=31)
 
 
 @dataclass
+class Wash:
+    triggered_by_id: int = None
+    triggers_id: int = None
+    addition_to_cost_fiat: float = 0.0
+    disallowed_loss_fiat: float = 0.0
+    holding_period_modifier: datetime.timedelta = datetime.timedelta(days=0)
+
+    def copy(self):
+        return Wash(
+            triggered_by_id=self.triggered_by_id,
+            triggers_id=self.triggers_id,
+            addition_to_cost_fiat=self.addition_to_cost_fiat,
+            disallowed_loss_fiat=self.disallowed_loss_fiat,
+            holding_period_modifier=self.holding_period_modifier,
+        )
+
+
+@dataclass
 class Pool:
     id: int = field(init=False, default_factory=count().__next__)
     asset: Asset
@@ -20,11 +38,7 @@ class Pool:
     sale_date: datetime.datetime = None
     sale_value_fiat: float = None
     sale_fee_fiat: float = None
-    wash_pool_id: int = None
-    triggers_wash_id: int = None
-    wash_sale_addition_to_cost_fiat: float = 0.0
-    disallowed_loss: float = 0.0
-    holding_period_modifier = datetime.timedelta(days=0)
+    wash: Wash = Wash()
 
     def __repr__(self) -> str:
         if self.sale_date is None:
@@ -44,7 +58,9 @@ class Pool:
             assert (
                 self.sale_date >= self.purchase_date
             ), "Sale must occur after purchase"
-            return self.sale_date - self.purchase_date + self.holding_period_modifier
+            return (
+                self.sale_date - self.purchase_date + self.wash.holding_period_modifier
+            )
 
     @property
     def holdings_type(self) -> bool:
@@ -66,7 +82,7 @@ class Pool:
     def cost_basis(self):
         return (
             self.purchase_cost_fiat
-            + self.wash_sale_addition_to_cost_fiat
+            + self.wash.addition_to_cost_fiat
             + self.purchase_fee_fiat
         )
 
@@ -83,7 +99,7 @@ class Pool:
             return None
         else:
             # (proceeds - cost_basis) is negative if there is disallowed loss
-            return self.proceeds - self.cost_basis + self.disallowed_loss
+            return self.proceeds - self.cost_basis + self.wash.disallowed_loss_fiat
 
     @property
     def potential_wash(self):
@@ -107,7 +123,7 @@ class Pool:
 
     @property
     def is_wash(self) -> bool:
-        if self.wash_pool_id is None:
+        if self.wash.triggered_by_id is None:
             return False
         else:
             return True
@@ -119,12 +135,10 @@ class Pool:
             purchase_date=self.purchase_date,
             purchase_cost_fiat=self.purchase_cost_fiat,
             purchase_fee_fiat=self.purchase_fee_fiat,
-            wash_sale_addition_to_cost_fiat=self.wash_sale_addition_to_cost_fiat,
             sale_date=self.sale_date,
             sale_value_fiat=self.sale_value_fiat,
             sale_fee_fiat=self.sale_fee_fiat,
-            wash_pool_id=self.wash_pool_id,
-            disallowed_loss=self.disallowed_loss,
+            wash=self.wash.copy(),
         )
 
     def set_dtypes(self):
@@ -136,7 +150,58 @@ class Pool:
             self.sale_date = self.sale_date.replace(tzinfo=datetime.timezone.utc)
             self.sale_value_fiat = np.round(self.sale_value_fiat, decimals=2)
             self.sale_fee_fiat = np.round(self.sale_fee_fiat, decimals=2)
-            self.disallowed_loss = float(self.disallowed_loss)
+            self.wash.disallowed_loss_fiat = np.round(
+                self.wash.disallowed_loss_fiat, decimals=2
+            )
+            self.wash.addition_to_cost_fiat = np.round(
+                self.wash.addition_to_cost_fiat, decimals=2
+            )
+
+    def to_series(self):
+        raise NotImplementedError
+
+    def to_sales_report(self):
+        """Returns a sales report row for IRS form 8949 if the object is closed."""
+        if self.closed:
+            series = {
+                "Asset Sold": self.asset.ticker,
+                "Purchase Date": self.purchase_date.strftime("%Y-%m-%d"),
+                "Sale Date": self.sale_date.strftime("%Y-%m-%d"),
+                "Amount": self.amount,
+                "Spot Price (USD)": np.round(
+                    self.sale_value_fiat / self.amount, decimals=2
+                ),
+                "Fee": self.sale_fee_fiat,
+                "Holding Period": self.holding_period.days,
+                "Short/Long": self.holdings_type_str,
+                "Proceeds": self.proceeds,
+                "Cost Basis": self.cost_basis,
+                "Wash Sale": "W" if self.is_wash else "",
+                "Disallowed Loss": self.wash.disallowed_loss_fiat,
+                "Net Gain": self.net_gain,
+            }
+            return pd.Series(series)
+        else:
+            return None
+
+    def to_irs8949(self):
+        """Returns a sales report row for IRS form 8949 if the object is closed."""
+        if self.closed:
+            series = {
+                "Description of Property": f"{self.amount} of {self.asset.ticker}",
+                "Date Acquired (Mo., day, yr.)": self.purchase_date.strftime(
+                    "%m/%d/%Y"
+                ),
+                "Date Acquired (Mo., day, yr.)": self.sale_date.strftime("%m/%d/%Y"),
+                "Proceeds": self.proceeds,
+                "Cost Basis": self.cost_basis,
+                "Adjustment Code": "W" if self.is_wash else "",
+                "Amount of Adjustment": self.wash.disallowed_loss_fiat,
+                "Gain": self.net_gain,
+            }
+            return pd.Series(series)
+        else:
+            return None
 
     def within_wash_window(self, date: datetime, kind="purchase"):
         if kind == "sale":
@@ -251,7 +316,7 @@ class PoolRegistry:
 
     @property
     def disallowed_loss(self):
-        return sum([pool.disallowed_loss for pool in self if pool.closed])
+        return sum([pool.wash.disallowed_loss_fiat for pool in self if pool.closed])
 
     @property
     def net_gain(self):
@@ -280,15 +345,20 @@ class PoolRegistry:
         pool_reg = sort_pools(self, by=by, ascending=ascending)
         self.pools = pool_reg.pools
 
-    def to_df(self, ascending=True):
+    def to_df(self, ascending=True, kind="sales_report"):
         """Converts the `PoolRegistry` object into a pandas DataFrame. Sorts orders by ascending date if `ascending=True`,
         descending date if `ascending=False` or does not change the ordering indicies if `ascending=None`.
         """
-        df = pd.DataFrame([pool.to_series() for pool in self])
-        if ascending is not None:
-            df.sort_values(
-                by="Date(UTC)", ascending=ascending, ignore_index=True, inplace=True
+        pool_reg = sort_pools(self, by="purchase", ascending=ascending)
+        if kind == "sales_report":
+            df = pd.DataFrame(
+                [pool.to_sales_report() for pool in pool_reg.closed_pools]
             )
+        elif kind in ["irs", "tax", "8949"]:
+            df = pd.DataFrame([pool.to_irs8949() for pool in pool_reg.closed_pools])
+        else:
+            df = pd.DataFrame([pool.to_series() for pool in pool_reg])
+
         return df
 
 
