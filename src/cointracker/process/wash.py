@@ -1,5 +1,5 @@
 import logging
-
+import numpy as np
 from cointracker.objects.pool import Pool, PoolRegistry
 from cointracker.process.conversions import split_pool
 
@@ -76,6 +76,10 @@ def execute_wash(
     pool_that_triggered.wash.triggers_id = wash_pool.id
     pool_that_triggered.wash.addition_to_cost_fiat = wash_pool.wash.disallowed_loss_fiat
     pool_that_triggered.wash.holding_period_modifier = wash_pool.holding_period
+
+    assert (
+        np.round(wash_pool.net_gain, decimals=2) == 0.0
+    ), f"a partitioned wash sale should have no net gain (net_gain={wash_pool.net_gain})"
 
     # Update both pools within pool_reg
     wash_idx = pool_reg.idx_for_id(wash_pool.id)
