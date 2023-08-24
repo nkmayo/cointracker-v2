@@ -18,13 +18,7 @@ class Wash:
     holding_period_modifier: datetime.timedelta = datetime.timedelta(days=0)
 
     def copy(self):
-        return Wash(
-            triggered_by_id=self.triggered_by_id,
-            triggers_id=self.triggers_id,
-            addition_to_cost_fiat=self.addition_to_cost_fiat,
-            disallowed_loss_fiat=self.disallowed_loss_fiat,
-            holding_period_modifier=self.holding_period_modifier,
-        )
+        return Wash(**self.__dict__)
 
 
 @dataclass
@@ -38,7 +32,7 @@ class Pool:
     sale_date: datetime.datetime = None
     sale_value_fiat: float = None
     sale_fee_fiat: float = None
-    wash: Wash = Wash()
+    wash: Wash = field(default_factory=Wash)  # don't share the same instance
 
     def __repr__(self) -> str:
         if self.sale_date is None:
@@ -129,17 +123,10 @@ class Pool:
             return True
 
     def copy(self):
-        return Pool(
-            asset=self.asset,
-            amount=self.amount,
-            purchase_date=self.purchase_date,
-            purchase_cost_fiat=self.purchase_cost_fiat,
-            purchase_fee_fiat=self.purchase_fee_fiat,
-            sale_date=self.sale_date,
-            sale_value_fiat=self.sale_value_fiat,
-            sale_fee_fiat=self.sale_fee_fiat,
-            wash=self.wash.copy(),
-        )
+        attrs = self.__dict__.copy()  # don't pop this __dict__
+        attrs.pop("id")
+        attrs["wash"] = self.wash.copy()
+        return Pool(**attrs)
 
     def set_dtypes(self):
         self.amount = float(self.amount)
