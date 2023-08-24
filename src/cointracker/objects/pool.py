@@ -145,19 +145,35 @@ class Pool:
             )
 
     def to_series(self):
-        raise NotImplementedError
+        return pd.Series(self.to_dict())
+
+    def to_dict(self) -> dict:
+        return {
+            "ID": self.id,
+            "Asset": self.asset.ticker,
+            "Amount": self.amount,
+            "Purchase Date": self.purchase_date,
+            "Purchase Cost (fiat)": self.purchase_cost_fiat,
+            "Purchase Fee (fiat)": self.purchase_fee_fiat,
+            "Sale Date": self.sale_date,
+            "Sale Value (fiat)": self.sale_value_fiat,
+            "Sale Fee (fiat)": self.sale_fee_fiat,
+            "Wash Triggered By ID": self.wash.triggered_by_id,
+            "Triggers Wash ID": self.wash.triggers_id,
+            "Wash Addition to Cost (fiat)": self.wash.addition_to_cost_fiat,
+            "Disallowed Loss (fiat)": self.wash.disallowed_loss_fiat,
+            "Holding Period Modifier": self.wash.holding_period_modifier,
+        }
 
     def to_sales_report(self):
         """Returns a sales report row for IRS form 8949 if the object is closed."""
         if self.closed:
-            series = {
+            return {
                 "Asset Sold": self.asset.ticker,
                 "Purchase Date": self.purchase_date.strftime("%Y-%m-%d"),
                 "Sale Date": self.sale_date.strftime("%Y-%m-%d"),
                 "Amount": self.amount,
-                "Spot Price (USD)": np.round(
-                    self.sale_value_fiat / self.amount, decimals=2
-                ),
+                "Spot Price (USD)": self.sale_value_fiat / self.amount,
                 "Fee": self.sale_fee_fiat,
                 "Holding Period": self.holding_period.days,
                 "Short/Long": self.holdings_type_str,
@@ -167,26 +183,24 @@ class Pool:
                 "Disallowed Loss": self.wash.disallowed_loss_fiat,
                 "Net Gain": self.net_gain,
             }
-            return pd.Series(series)
         else:
             return None
 
     def to_irs8949(self):
         """Returns a sales report row for IRS form 8949 if the object is closed."""
         if self.closed:
-            series = {
+            return {
                 "Description of Property": f"{self.amount} of {self.asset.ticker}",
                 "Date Acquired (Mo., day, yr.)": self.purchase_date.strftime(
                     "%m/%d/%Y"
                 ),
-                "Date Acquired (Mo., day, yr.)": self.sale_date.strftime("%m/%d/%Y"),
+                "Date Sold (Mo., day, yr.)": self.sale_date.strftime("%m/%d/%Y"),
                 "Proceeds": self.proceeds,
                 "Cost Basis": self.cost_basis,
                 "Adjustment Code": "W" if self.is_wash else "",
                 "Amount of Adjustment": self.wash.disallowed_loss_fiat,
                 "Gain": self.net_gain,
             }
-            return pd.Series(series)
         else:
             return None
 
@@ -344,7 +358,7 @@ class PoolRegistry:
         elif kind in ["irs", "tax", "8949"]:
             df = pd.DataFrame([pool.to_irs8949() for pool in pool_reg.closed_pools])
         else:
-            df = pd.DataFrame([pool.to_series() for pool in pool_reg])
+            df = pd.DataFrame([pool.to_dict() for pool in pool_reg])
 
         return df
 
