@@ -19,6 +19,8 @@ def amount_from_price_total(spot: float, total: float, asset: Asset, market_num:
 
 def split_pool(pool: Pool, retained_fraction: float):
     assert not pool.is_wash, "Pools already in a wash sale cannot be additionally split"
+    # TODO: This latter assert is not true. Something that triggers a wash sale and ends up at a loss can
+    # chain to being a wash sale itself that needs to be split
     assert (
         pool.wash.triggers_id is None
     ), "Pools that have already triggered a wash sale cannot be additonally split"
