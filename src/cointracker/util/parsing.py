@@ -2,21 +2,33 @@ import pandas as pd
 import numpy as np
 import datetime
 from dateutil import parser
+from pathlib import Path
+import uuid
+from tkinter import filedialog
 from cointracker.objects.orderbook import Order, OrderBook
+from cointracker.objects.pool import Pool, PoolRegistry, Wash
 from cointracker.objects.asset import AssetRegistry, import_registry
 from cointracker.objects.enumerated_values import TransactionType
 from cointracker.pricing.getAssetPrice import getAssetPrice
 from cointracker.settings.config import read_config
 
 
-def load_excel_orderbook(file: str, sheetname: str = "Sheet1"):
-    cfg = read_config()
+cfg = read_config()
+
+
+def load_asset_registry():
+    """Loads the `AssetRegistry` from the default configuration location."""
     registry_file = cfg.paths.data / "token_registry.yaml"
     token_registry = import_registry(filename=registry_file)
     registry_file = cfg.paths.data / "fiat_registry.yaml"
     fiat_registry = import_registry(filename=registry_file)
     registry = token_registry + fiat_registry
+    return registry
 
+
+def load_excel_orderbook(file: str, sheetname: str = "Sheet1"):
+    """Loads an `Orderbook` from data saved in the .xlsx format from Excel."""
+    registry = load_asset_registry()
     filename = cfg.paths.tests / file
     order_df = parse_orderbook(filename, sheetname)
     orderbook = orderbook_from_df(order_df, registry=registry)
@@ -24,7 +36,22 @@ def load_excel_orderbook(file: str, sheetname: str = "Sheet1"):
     return orderbook
 
 
+def load_excel_pool_registry(filepath: Path = None, sheetname: str = "Sheet1"):
+    """Loads a `PoolRegistry` from data saved in the .xlsx format from Excel."""
+    if filepath is None:
+        filepath = filedialog.askopenfilename(
+            title="Select pool registry file",
+            filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")),
+        )
+
+    df = pd.read_excel(filepath, sheet_name=sheetname)
+    pool_reg = pool_reg_from_df(df)
+
+    return pool_reg
+
+
 def parse_orderbook(filename, sheet):
+    """Loads an orderbook from the input file and parses it, combining common orders within the same day."""
     # if isinstance(filename, Path):
     #     filename = str(filename)
     xl_file = pd.ExcelFile(filename)
@@ -148,12 +175,18 @@ def parse_orderbook(filename, sheet):
 
 def str_to_datetime_utc(string: str) -> datetime.datetime:
     """Converts a string to timezone aware utc time"""
-    if not isinstance(string, datetime.datetime):
-        date = parser.parse(string)  # parse the date to datetime
-    else:
-        date = string
 
-    return date.replace(tzinfo=datetime.timezone.utc)  # convert to non-naive UTC
+    if string == "NaT":
+        date = np.datetime64("NaT")
+    else:
+        if not isinstance(string, datetime.datetime):
+            date = parser.parse(string)  # parse the date to datetime
+        else:
+            date = string
+
+        date = date.replace(tzinfo=datetime.timezone.utc)  # convert to non-naive UTC
+
+    return date
 
 
 def orderbook_from_df(dataframe: pd.DataFrame, registry: AssetRegistry):
@@ -179,6 +212,62 @@ def orderbook_from_df(dataframe: pd.DataFrame, registry: AssetRegistry):
         )
 
     return OrderBook(orders=orderbook)
+
+
+def set_pool_reg_df_dtypes(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Handles conversion of values within the dataframe to their correct data type."""
+    dataframe.purchase_date = pd.to_datetime(dataframe.purchase_date)
+    dataframe.sale_date = pd.to_datetime(dataframe.sale_date)
+    dataframe = dataframe.replace({pd.NaT: None, pd.NA: None, float("nan"): None})
+    dataframe.id = dataframe.id.apply(uuid.UUID)
+    dataframe.triggered_by_id = dataframe.triggered_by_id.apply(
+        lambda x: uuid.UUID(x) if x is not None else None
+    )
+    dataframe.triggers_id = dataframe.triggers_id.apply(
+        lambda x: uuid.UUID(x) if x is not None else None
+    )
+
+    return dataframe.astype(
+        {
+            "id": "object",
+            "asset": "str",
+            "amount": "float",
+            "purchase_cost_fiat": "float",
+            "purchase_fee_fiat": "float",
+            "sale_value_fiat": "float",
+            "sale_fee_fiat": "float",
+            "triggered_by_id": "object",
+            "triggers_id": "object",
+            "addition_to_cost_fiat": "float",
+            "disallowed_loss_fiat": "float",
+            "holding_period_modifier": "timedelta64[ns]",
+        }
+    )
+
+
+def pool_reg_from_df(dataframe: pd.DataFrame):
+    """Creates a `PoolRegistry` from the input `dataframe`."""
+    asset_reg = load_asset_registry()
+    pool_reg = []
+    dataframe = set_pool_reg_df_dtypes(dataframe=dataframe)
+    for _, row in dataframe.iterrows():
+        pool_dict = row.to_dict()
+        pool_dict["asset"] = asset_reg[pool_dict["asset"]]  # use ticker to get Asset
+        wash_dict = {}
+        wash_dict["triggered_by_id"] = pool_dict.pop("triggered_by_id")
+        wash_dict["triggers_id"] = pool_dict.pop("triggers_id")
+        wash_dict["addition_to_cost_fiat"] = pool_dict.pop("addition_to_cost_fiat")
+        wash_dict["disallowed_loss_fiat"] = pool_dict.pop("disallowed_loss_fiat")
+        wash_dict["holding_period_modifier"] = pool_dict.pop("holding_period_modifier")
+
+        pool_reg.append(
+            Pool(
+                **pool_dict,
+                wash=Wash(**wash_dict),
+            )
+        )
+
+    return PoolRegistry(pools=pool_reg)
 
 
 def split_markets_str(markets: str):
