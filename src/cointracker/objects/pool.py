@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 import datetime
-from itertools import count
+import uuid
 from dataclasses import dataclass, field
 from cointracker.objects.asset import Asset
 
@@ -11,8 +11,8 @@ WASH_WINDOW = datetime.timedelta(days=31)
 
 @dataclass
 class Wash:
-    triggered_by_id: int = None
-    triggers_id: int = None
+    triggered_by_id: uuid = None
+    triggers_id: uuid = None
     addition_to_cost_fiat: float = 0.0
     disallowed_loss_fiat: float = 0.0
     holding_period_modifier: datetime.timedelta = datetime.timedelta(days=0)
@@ -23,7 +23,9 @@ class Wash:
 
 @dataclass
 class Pool:
-    id: int = field(init=False, default_factory=count().__next__)
+    # TODO: need to generate a unique id that is aware of what other id's have been loaded (from file perhaps). Or perhaps
+    # change all loaded assets (and references to them) to negative numbers. This however would create a conflict when new
+    # pools are created (id 1, 2, 3, etc) and then saved again, having the same id (-1, -2, -3) as previously saved pools.
     asset: Asset
     amount: float  # convert to int with market1 units?
     purchase_date: datetime.datetime
@@ -33,6 +35,7 @@ class Pool:
     sale_value_fiat: float = None
     sale_fee_fiat: float = None
     wash: Wash = field(default_factory=Wash)  # don't share the same instance
+    id: uuid = field(default_factory=uuid.uuid4)  # don't share the same instance
 
     def __repr__(self) -> str:
         if self.sale_date is None:
@@ -148,22 +151,10 @@ class Pool:
         return pd.Series(self.to_dict())
 
     def to_dict(self) -> dict:
-        return {
-            "ID": self.id,
-            "Asset": self.asset.ticker,
-            "Amount": self.amount,
-            "Purchase Date": self.purchase_date,
-            "Purchase Cost (fiat)": self.purchase_cost_fiat,
-            "Purchase Fee (fiat)": self.purchase_fee_fiat,
-            "Sale Date": self.sale_date,
-            "Sale Value (fiat)": self.sale_value_fiat,
-            "Sale Fee (fiat)": self.sale_fee_fiat,
-            "Wash Triggered By ID": self.wash.triggered_by_id,
-            "Triggers Wash ID": self.wash.triggers_id,
-            "Wash Addition to Cost (fiat)": self.wash.addition_to_cost_fiat,
-            "Disallowed Loss (fiat)": self.wash.disallowed_loss_fiat,
-            "Holding Period Modifier": self.wash.holding_period_modifier,
-        }
+        attr_dict = self.__dict__.copy()
+        attr_dict.pop("wash")
+        wash_dict = self.wash.__dict__.copy()
+        return {**attr_dict, **wash_dict}
 
     def to_sales_report(self):
         """Returns a sales report row for IRS form 8949 if the object is closed."""
@@ -323,9 +314,9 @@ class PoolRegistry:
     def net_gain(self):
         return sum([pool.net_gain for pool in self if pool.closed])
 
-    def idx_for_id(self, id: int):
+    def idx_for_id(self, id: uuid):
         """Returns the index (as currently sorted) within the `pools` list of the pool with id `id`."""
-        return np.argmin([abs(pool.id - id) for pool in self])
+        return ([pool.id for pool in self]).index(id)
 
     def pools_with(self, asset: Asset, open: bool = None):
         """Returns the subset of pools with asset matching `asset`. If `open=None` all matching pools are returned. If
