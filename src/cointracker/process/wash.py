@@ -95,7 +95,7 @@ def find_wash_match(pool_with_loss: Pool, pool_reg: PoolRegistry) -> Pool:
     # NOTE: OrderingStrategy shouldn't matter at this point as the orders have already been executed
     assert (
         pool_with_loss.potential_wash
-    ), "Only pools with negative net gain can be triggered as a wash sale"
+    ), "Trying to find a wash match for a pool in which `potential_wash` fails. Asset must be fungible, pool must have negative net gain, and can't already have been triggered as a wash sale"
     loss_sale_date = pool_with_loss.sale_date
     pool_reg.sort(by="purchase", ascending=True)
     matched_pool = None
