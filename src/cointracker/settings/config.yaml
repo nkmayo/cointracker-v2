@@ -9,3 +9,4 @@ processing:
   start_date: ""  # YY/MM/DD
   end_date: ""    # YY/MM/DD
   filing_years: [2021, 2022]
+  default_fiat: "USD"

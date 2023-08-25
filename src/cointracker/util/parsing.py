@@ -29,7 +29,13 @@ def load_asset_registry():
 def load_excel_orderbook(file: str, sheetname: str = "Sheet1"):
     """Loads an `Orderbook` from data saved in the .xlsx format from Excel."""
     registry = load_asset_registry()
-    filename = cfg.paths.tests / file
+    if file is None:
+        filename = filedialog.askopenfilename(
+            title="Select pool registry file",
+            filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")),
+        )
+    else:
+        filename = cfg.paths.tests / file
     order_df = parse_orderbook(filename, sheetname)
     orderbook = orderbook_from_df(order_df, registry=registry)
 
@@ -273,7 +279,7 @@ def pool_reg_from_df(dataframe: pd.DataFrame):
 def split_markets_str(markets: str):
     if "-" not in markets:
         asset1 = markets
-        asset2 = "Fiat"
+        asset2 = cfg.processing.default_fiat.upper()
     else:
         asset1, asset2 = markets.split("-")
 
