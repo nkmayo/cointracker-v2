@@ -3,7 +3,7 @@ from tkinter import filedialog
 from pathlib import Path
 
 from cointracker.objects.asset import AssetRegistry, import_registry
-from cointracker.objects.pool import PoolRegistry
+from cointracker.objects.pool import Pool, PoolRegistry, Wash
 from cointracker.settings.config import cfg
 from cointracker.util.parsing import (
     parse_orderbook,
@@ -51,6 +51,48 @@ def load_excel_pool_registry(filepath: Path = None, sheetname: str = "Sheet1"):
 
     df = pd.read_excel(filepath, sheet_name=sheetname)
     pool_reg = pool_reg_from_df(df)
+
+    return pool_reg
+
+
+def load_from_v1_pools(filepath: Path = None, sheetname: str = "Sheet1"):
+    """Loads the EOY Purchase Pools into a `PoolRegistry` object.
+    NOTE: V1 EOY Asset Pools only contain "Active" (open) orders. EOY Purchase Pools contain both Active and Inactive orders
+    which are needed to correctly account for potential wash sales from December of the previous year.
+    TODO: Can you get sale information from the Asset Pools that aren't active?
+    """
+    if filepath is None:
+        filepath = filedialog.askopenfilename(
+            title="Select pool registry file",
+            filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")),
+        )
+
+    v1_df = pd.read_excel(filepath, sheet_name=sheetname)
+
+    v2_info = []
+    for row in v1_df.iterrows():
+        v2_info.append(
+            {
+                "asset": row["Asset"],
+                "amount": row["Amount"],
+                "purchase_date": row["Purchase Date"],
+                "purchase_cost_fiat": row["Asset Spot Price"] * row["Amount"],
+                "purchase_fee_fiat": row["Fee USD"],
+                "sale_date": None,
+                "sale_value_fiat": None,
+                "sale_fee_fiat": None,
+                "triggered_by_id": None
+                if row["Initiates Wash"] == 0
+                else row["Initiates Wash"],
+                "triggers_id": None,  # Can't tell which pool it may have triggered
+                "disallowed_loss_fiat": row["Modified Cost Basis"] - row["Cost Basis"],
+                "holding_period_modifier": row["Holding Period Modifier"],
+            }
+        )
+
+    v2_df = pd.DataFrame(v2_info)
+    pool_reg = pool_reg_from_df(v2_df)
+    # TODO: Go through and find which v1 ID corresponds with which v2 ID and update wash.triggerd_by_id
 
     return pool_reg
 
