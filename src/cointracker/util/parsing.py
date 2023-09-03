@@ -2,61 +2,16 @@ import pandas as pd
 import numpy as np
 import datetime
 from dateutil import parser
-from pathlib import Path
 import uuid
-from tkinter import filedialog
 from cointracker.objects.orderbook import Order, OrderBook
 from cointracker.objects.pool import Pool, PoolRegistry, Wash
-from cointracker.objects.asset import AssetRegistry, import_registry
+from cointracker.objects.asset import AssetRegistry
 from cointracker.objects.enumerated_values import TransactionType
 from cointracker.pricing.getAssetPrice import getAssetPrice
-from cointracker.settings.config import read_config
+from cointracker.util.file_io import load_asset_registry, cfg
 
 
-cfg = read_config()
-
-
-def load_asset_registry():
-    """Loads the `AssetRegistry` from the default configuration location."""
-    registry_file = cfg.paths.data / "token_registry.yaml"
-    token_registry = import_registry(filename=registry_file)
-    registry_file = cfg.paths.data / "fiat_registry.yaml"
-    fiat_registry = import_registry(filename=registry_file)
-    registry = token_registry + fiat_registry
-    return registry
-
-
-def load_excel_orderbook(file: str, sheetname: str = "Sheet1"):
-    """Loads an `Orderbook` from data saved in the .xlsx format from Excel."""
-    registry = load_asset_registry()
-    if file is None:
-        filename = filedialog.askopenfilename(
-            title="Select pool registry file",
-            filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")),
-        )
-    else:
-        filename = cfg.paths.tests / file
-    order_df = parse_orderbook(filename, sheetname)
-    orderbook = orderbook_from_df(order_df, registry=registry)
-
-    return orderbook
-
-
-def load_excel_pool_registry(filepath: Path = None, sheetname: str = "Sheet1"):
-    """Loads a `PoolRegistry` from data saved in the .xlsx format from Excel."""
-    if filepath is None:
-        filepath = filedialog.askopenfilename(
-            title="Select pool registry file",
-            filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")),
-        )
-
-    df = pd.read_excel(filepath, sheet_name=sheetname)
-    pool_reg = pool_reg_from_df(df)
-
-    return pool_reg
-
-
-def parse_orderbook(filename, sheet):
+def parse_orderbook(filename, sheet) -> pd.DataFrame:
     """Loads an orderbook from the input file and parses it, combining common orders within the same day."""
     # if isinstance(filename, Path):
     #     filename = str(filename)

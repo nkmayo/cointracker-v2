@@ -5,7 +5,7 @@ from cointracker.objects.enumerated_values import TransactionType, OrderingStrat
 from cointracker.process.conversions import fiat_equivalent
 from cointracker.process.transact import execute_order
 from cointracker.process.wash import execute_washes
-from cointracker.settings.config import read_config
+from cointracker.settings.config import cfg
 
 
 def execute_orderbook(
@@ -16,7 +16,6 @@ def execute_orderbook(
     Optionally, an existing set of `pools` can be specified to pull in previous data.
 
     """
-    cfg = read_config()
     for order in orderbook:  # default orderbook is already sorted by ascending date
         pool_reg = execute_order(
             order, pools=pool_reg, strategy=cfg.processing.ordering_strategy

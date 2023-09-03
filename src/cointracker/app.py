@@ -5,17 +5,18 @@ from cointracker.objects.asset import import_registry
 from cointracker.util.parsing import (
     orderbook_from_df,
     parse_orderbook,
+)
+from cointracker.process.execute import execute_orderbook
+from cointracker.settings.config import cfg
+from cointracker.util.file_io import (
+    export_pool_reg,
     load_excel_orderbook,
     load_excel_pool_registry,
 )
-from cointracker.process.execute import execute_orderbook
-from cointracker.settings.config import read_config
-from cointracker.util.export import export_pool_reg
 
 
 # %%
 def run():
-    cfg = read_config()
     # fromExcel = True
     # fromExisingPools = False
     # root = tk.Tk()
@@ -39,12 +40,12 @@ def run():
     # #     )
     # #     oBook = pd.read_csv(filename, parse_dates=["Date(UTC)"])
 
-    # %% Loading From File
-    pool_reg = load_excel_pool_registry(sheetname="All Pools")
-    print(f"Pools:\n{[pool for pool in pool_reg]}")
+    # # %% Loading From File
+    # pool_reg = load_excel_pool_registry(sheetname="All Pools")
+    # print(f"Pools:\n{[pool for pool in pool_reg]}")
 
     # %%
-    ob = load_excel_orderbook("wash_from_asset_purchase.xlsx")
+    ob = load_excel_orderbook(None, "Combined")
     pool_reg = execute_orderbook(orderbook=ob, pool_reg=None)
 
     print(f"Pools:\n{[pool for pool in pool_reg]}")

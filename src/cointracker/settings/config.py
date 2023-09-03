@@ -72,3 +72,6 @@ def fiat_currencies() -> list[str]:
         registry = yaml.safe_load(file)
 
     return [registry[asset]["ticker"] for asset in registry]
+
+
+cfg = read_config()

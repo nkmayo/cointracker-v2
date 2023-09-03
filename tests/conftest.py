@@ -1,5 +1,5 @@
 import pytest
-from cointracker.util.parsing import load_excel_orderbook
+from cointracker.util.file_io import load_excel_orderbook
 from cointracker.process.transact import split_order
 
 
