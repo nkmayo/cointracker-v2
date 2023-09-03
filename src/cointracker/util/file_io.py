@@ -19,9 +19,12 @@ def load_asset_registry():
     """Loads the `AssetRegistry` from the default configuration location."""
     registry_file = cfg.paths.data / "token_registry.yaml"
     token_registry = import_registry(filename=registry_file)
+    registry_file = cfg.paths.data / "nft_registry.yaml"
+    nft_registry = import_registry(filename=registry_file)
     registry_file = cfg.paths.data / "fiat_registry.yaml"
     fiat_registry = import_registry(filename=registry_file)
-    registry = token_registry + fiat_registry
+    registry = token_registry + nft_registry + fiat_registry
+    registry = [item for item in registry if item is not None]
     return registry
 
 

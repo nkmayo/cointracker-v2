@@ -1,10 +1,355 @@
+AAVE:
+  decimals: 14
+  fungible: true
+  name: Aave
+  ticker: AAVE
 ADA:
   decimals: 6
   fungible: true
   name: Cardano
   ticker: ADA
+ALGO:
+  decimals: 14
+  fungible: true
+  name: ALGO
+  ticker: ALGO
+ALPHA:
+  decimals: 14
+  fungible: true
+  name: Alpha Finance
+  ticker: ALPHA
+ARK:
+  decimals: 14
+  fungible: true
+  name: ARK
+  ticker: ARK
+ATOM:
+  decimals: 14
+  fungible: true
+  name: Cosmos
+  ticker: ATOM
+ATUSD:
+  decimals: 14
+  fungible: true
+  name: Aave TUSD
+  ticker: ATUSD
+BAND:
+  decimals: 14
+  fungible: true
+  name: Band Protocol
+  ticker: BAND
+BAT:
+  decimals: 14
+  fungible: true
+  name: Basic Attention Token
+  ticker: BAT
+BCH:
+  decimals: 14
+  fungible: true
+  name: Bitcoin Cash
+  ticker: BCH
+BNB:
+  decimals: 14
+  fungible: true
+  name: BNB
+  ticker: BNB
+BRD:
+  decimals: 14
+  fungible: true
+  name: Bread
+  ticker: BRD
+BSV:
+  decimals: 14
+  fungible: true
+  name: Bitcoin SV
+  ticker: BSV
+BTC:
+  decimals: 8
+  fungible: true
+  name: Bitcoin
+  ticker: BTC
+CGLD:
+  decimals: 14
+  fungible: true
+  name: Celo Gold
+  ticker: CGLD
+COMP:
+  decimals: 14
+  fungible: true
+  name: Compound
+  ticker: COMP
+DAI:
+  decimals: 14
+  fungible: true
+  name: DAI
+  ticker: DAI
+DANA:
+  decimals: 14
+  fungible: true
+  name: Ardana
+  ticker: DANA
+DASH:
+  decimals: 14
+  fungible: true
+  name: Dash
+  ticker: DASH
+DPI:
+  decimals: 14
+  fungible: true
+  name: DeFi Pulse Index
+  ticker: DPI
+EOS:
+  decimals: 14
+  fungible: true
+  name: EOS
+  ticker: EOS
 ETH:
   decimals: 18
   fungible: true
   name: Ethereum
   ticker: ETH
+FIL:
+  decimals: 14
+  fungible: true
+  name: Filecoin
+  ticker: FIL
+IBDPI:
+  decimals: 14
+  fungible: true
+  name: Interest Bearing DPI
+  ticker: IBDPI
+IBETH:
+  decimals: 14
+  fungible: true
+  name: Interest Bearing ETH
+  ticker: IBETH
+IBUSDC:
+  decimals: 14
+  fungible: true
+  name: Interest Bearing USDC
+  ticker: IBUSDC
+ICX:
+  decimals: 14
+  fungible: true
+  name: Icon
+  ticker: ICX
+INS:
+  decimals: 14
+  fungible: true
+  name: INS
+  ticker: INS
+IOTA:
+  decimals: 14
+  fungible: true
+  name: IOTA
+  ticker: IOTA
+LEND:
+  decimals: 14
+  fungible: true
+  name: Lend (Aave Old)
+  ticker: LEND
+LINK:
+  decimals: 14
+  fungible: true
+  name: Chainlink
+  ticker: LINK
+LRC:
+  decimals: 14
+  fungible: true
+  name: Loopring
+  ticker: LRC
+LTC:
+  decimals: 14
+  fungible: true
+  name: Litecoin
+  ticker: LTC
+LUN:
+  decimals: 14
+  fungible: true
+  name: LUN
+  ticker: LUN
+MELD:
+  decimals: 14
+  fungible: true
+  name: MELD
+  ticker: MELD
+MKR:
+  decimals: 14
+  fungible: true
+  name: Maker
+  ticker: MKR
+NANO:
+  decimals: 14
+  fungible: true
+  name: Nano
+  ticker: NANO
+NEO:
+  decimals: 14
+  fungible: true
+  name: NEO
+  ticker: NEO
+NULS:
+  decimals: 14
+  fungible: true
+  name: NULS
+  ticker: NULS
+OCC:
+  decimals: 14
+  fungible: true
+  name: OccamFi
+  ticker: OCC
+OMG:
+  decimals: 14
+  fungible: true
+  name: OMG Network
+  ticker: OMG
+OXT:
+  decimals: 14
+  fungible: true
+  name: Orchid Protocol
+  ticker: OXT
+QSP:
+  decimals: 14
+  fungible: true
+  name: Quantstamp
+  ticker: QSP
+RAY:
+  decimals: 14
+  fungible: true
+  name: Ray Network
+  ticker: RAY
+SALT:
+  decimals: 14
+  fungible: true
+  name: SALT
+  ticker: SALT
+SHIB:
+  decimals: 14
+  fungible: true
+  name: Shiba Inu
+  ticker: SHIB
+SNT:
+  decimals: 14
+  fungible: true
+  name: Status
+  ticker: SNT
+SOCIETY:
+  decimals: 14
+  fungible: true
+  name: Society
+  ticker: SOCIETY
+STORJ:
+  decimals: 14
+  fungible: true
+  name: Storj
+  ticker: STORJ
+SUB:
+  decimals: 14
+  fungible: true
+  name: Substratum
+  ticker: SUB
+SUNDAE:
+  decimals: 14
+  fungible: true
+  name: SundaeSwap
+  ticker: SUNDAE
+TRB:
+  decimals: 14
+  fungible: true
+  name: Tellor Tributes
+  ticker: TRB
+TUSD:
+  decimals: 14
+  fungible: true
+  name: TrueUSD
+  ticker: TUSD
+TRX:
+  decimals: 14
+  fungible: true
+  name: Tron
+  ticker: TRX
+UNI:
+  decimals: 14
+  fungible: true
+  name: Uniswap
+  ticker: UNI
+USDC:
+  decimals: 14
+  fungible: true
+  name: USD Coin
+  ticker: USDC
+USDT:
+  decimals: 14
+  fungible: true
+  name: Tether
+  ticker: USDT
+VADPI:
+  decimals: 14
+  fungible: true
+  name: Vesper Aggressive DPI
+  ticker: VADPI
+VEDAIETH:
+  decimals: 14
+  fungible: true
+  name: Vesper Earn DAIETH
+  ticker: VEDAIETH
+VEN:
+  decimals: 14
+  fungible: true
+  name: VeChain (old)
+  ticker: VEN
+VIB:
+  decimals: 14
+  fungible: true
+  name: Viberate
+  ticker: VIB
+VSP:
+  decimals: 14
+  fungible: true
+  name: Vesper Finance
+  ticker: VSP
+VUSDC:
+  decimals: 14
+  fungible: true
+  name: Vesper USDC
+  ticker: VUSDC
+VVSP:
+  decimals: 14
+  fungible: true
+  name: Staked Vesper
+  ticker: VVSP
+XLM:
+  decimals: 14
+  fungible: true
+  name: Stellar
+  ticker: XLM
+XMR:
+  decimals: 14
+  fungible: true
+  name: Monero
+  ticker: XMR
+XRP:
+  decimals: 14
+  fungible: true
+  name: Ripple
+  ticker: XRP
+XTZ:
+  decimals: 14
+  fungible: true
+  name: Tezos
+  ticker: XTZ
+XVG:
+  decimals: 14
+  fungible: true
+  name: Verge
+  ticker: XVG
+ZEC:
+  decimals: 14
+  fungible: true
+  name: Zcash
+  ticker: ZEC
+ZRX:
+  decimals: 14
+  fungible: true
+  name: 0x Protocol
+  ticker: ZRX
