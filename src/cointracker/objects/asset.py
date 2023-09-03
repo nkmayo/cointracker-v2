@@ -23,8 +23,8 @@ class Asset:
 
     def __post_init__(self):
         if not self.fungible:  # non-fungible tokens have no sub-units
-            # object.__setattr__(self, 'decimals', 0)
-            self.decimals = 0
+            object.__setattr__(self, "decimals", 0)
+            # self.decimals = 0
 
     def __str__(self) -> str:
         return self.ticker
@@ -139,6 +139,20 @@ class AssetRegistry:
             self.assets[key] = value
         else:
             raise TypeError(f"Invalid argument type: {type(key)}")
+
+    @property
+    def nft(self):
+        return AssetRegistry(
+            [asset for asset in self.assets if asset.fungible == False]
+        )
+
+    @property
+    def fungible(self):
+        return AssetRegistry([asset for asset in self.assets if asset.fungible == True])
+
+    @property
+    def fiat(self):
+        return AssetRegistry([asset for asset in self.assets if asset.is_fiat])
 
 
 def asset_from_dict(dictionary):
