@@ -5,10 +5,12 @@ from dateutil import parser
 import uuid
 from cointracker.objects.orderbook import Order, OrderBook
 from cointracker.objects.pool import Pool, PoolRegistry, Wash
-from cointracker.objects.asset import AssetRegistry
+from cointracker.objects.asset import Asset, AssetRegistry
 from cointracker.objects.enumerated_values import TransactionType
+from cointracker.objects.exceptions import AssetNotFoundError
 from cointracker.pricing.getAssetPrice import getAssetPrice
 from cointracker.util.file_io import load_asset_registry, cfg
+from cointracker.util.dialogue import register_asset_dialogue
 
 
 def parse_orderbook(filename, sheet) -> pd.DataFrame:
@@ -213,7 +215,14 @@ def pool_reg_from_df(dataframe: pd.DataFrame):
     dataframe = set_pool_reg_df_dtypes(dataframe=dataframe)
     for _, row in dataframe.iterrows():
         pool_dict = row.to_dict()
-        pool_dict["asset"] = asset_reg[pool_dict["asset"]]  # use ticker to get Asset
+        try:
+            pool_dict["asset"] = asset_reg[
+                pool_dict["asset"]
+            ]  # use ticker to get Asset
+        except AssetNotFoundError(
+            f"Asset {pool_dict['asset']} not found. Please enter asset details"
+        ):
+            asset_reg.assets.append(Asset(**register_asset_dialogue()))
         wash_dict = {}
         wash_dict["triggered_by_id"] = pool_dict.pop("triggered_by_id")
         wash_dict["triggers_id"] = pool_dict.pop("triggers_id")
