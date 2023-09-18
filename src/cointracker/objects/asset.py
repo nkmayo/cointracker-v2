@@ -122,7 +122,10 @@ class AssetRegistry:
         elif isinstance(key, str):
             asset = None
             for asset_in_registry in self:
-                if asset_in_registry.name == key or asset_in_registry.ticker == key:
+                if (
+                    asset_in_registry.name.upper() == key.upper()
+                    or asset_in_registry.ticker.upper() == key.upper()
+                ):
                     asset = asset_in_registry
             if asset is None:
                 raise ValueError(f"{key} not found in `AssetRegistry`")
