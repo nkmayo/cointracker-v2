@@ -4,6 +4,7 @@ from cointracker.objects.orderbook import Order, OrderBook, Transaction
 from cointracker.objects.asset import Asset, AssetRegistry
 from cointracker.objects.pool import Pool, PoolRegistry
 from cointracker.objects.enumerated_values import TransactionType, OrderingStrategy
+from cointracker.objects.exceptions import NoMatchingPoolError
 from cointracker.process.conversions import fiat_equivalent
 
 
@@ -67,6 +68,14 @@ def execute_sell(
         candidate_pools.sort(by="sale", ascending=True)
     elif strategy == OrderingStrategy.LIFO:
         candidate_pools.sort(by="sale", ascending=False)
+
+    if candidate_pools.is_empty:
+        non_candidate_pools = pool_reg.pools_with(sell_txn.asset, open=False)
+        print(f"sell_txn:\n{sell_txn}")
+        print(
+            f"All pools with {sell_txn.asset}:\n{non_candidate_pools.to_df(kind='dict')}"
+        )
+        raise NoMatchingPoolError(f"No matching pool found for {sell_txn.asset}")
 
     matched_pool = candidate_pools[0]
     remaining_sell_amount = sell_txn.amount - matched_pool.amount
