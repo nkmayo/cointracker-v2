@@ -314,6 +314,10 @@ class PoolRegistry:
     def net_gain(self):
         return sum([pool.net_gain for pool in self if pool.closed])
 
+    @property
+    def is_empty(self):
+        return len(self.pools) == 0
+
     def idx_for_id(self, id: uuid):
         """Returns the index (as currently sorted) within the `pools` list of the pool with id `id`."""
         return ([pool.id for pool in self]).index(id)
