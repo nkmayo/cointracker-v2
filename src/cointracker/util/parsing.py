@@ -9,7 +9,7 @@ from cointracker.objects.asset import Asset, AssetRegistry
 from cointracker.objects.enumerated_values import TransactionType
 from cointracker.objects.exceptions import AssetNotFoundError
 from cointracker.pricing.getAssetPrice import getAssetPrice
-from cointracker.util.file_io import load_asset_registry, cfg
+from cointracker.settings.config import cfg
 from cointracker.util.dialogue import register_asset_dialogue
 
 
@@ -208,9 +208,8 @@ def set_pool_reg_df_dtypes(dataframe: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def pool_reg_from_df(dataframe: pd.DataFrame):
+def pool_reg_from_df(dataframe: pd.DataFrame, asset_reg: AssetRegistry):
     """Creates a `PoolRegistry` from the input `dataframe`."""
-    asset_reg = load_asset_registry()
     pool_reg = []
     dataframe = set_pool_reg_df_dtypes(dataframe=dataframe)
     for _, row in dataframe.iterrows():
