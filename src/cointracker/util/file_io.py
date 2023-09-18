@@ -25,7 +25,7 @@ def load_asset_registry():
     fiat_registry = import_registry(filename=registry_file)
     registry = token_registry + nft_registry + fiat_registry
     registry = [item for item in registry if item is not None]
-    return registry
+    return AssetRegistry(registry)
 
 
 def load_excel_orderbook(file: str, sheetname: str = "Sheet1"):
