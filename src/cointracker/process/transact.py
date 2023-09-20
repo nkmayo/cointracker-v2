@@ -16,12 +16,12 @@ def execute_order(
     logging.debug(f"---Initial pools list: {pools}")
     buy_txn, sell_txn = split_order(order=order)
 
-    if not sell_txn.asset.is_fiat:
+    if (not sell_txn.asset.is_fiat) and (sell_txn.amount != 0.0):
         pools = execute_sell(sell_txn=sell_txn, pool_reg=pools, strategy=strategy)
     logging.debug(f"---Pools list after execute_sell: {pools}")
     # Add the buy pool to Pools after executing the sell side
 
-    if not buy_txn.asset.is_fiat:
+    if (not buy_txn.asset.is_fiat) and (buy_txn.amount != 0.0):
         buy_pool = Pool(
             asset=buy_txn.asset,
             amount=buy_txn.amount,
@@ -75,7 +75,9 @@ def execute_sell(
         print(
             f"All pools with {sell_txn.asset}:\n{non_candidate_pools.to_df(kind='dict')}"
         )
-        raise NoMatchingPoolError(f"No matching pool found for {sell_txn.asset}")
+        raise NoMatchingPoolError(
+            f"No matching pool found for {sell_txn.asset} on {sell_txn.date}"
+        )
 
     matched_pool = candidate_pools[0]
     remaining_sell_amount = sell_txn.amount - matched_pool.amount
