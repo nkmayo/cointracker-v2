@@ -53,7 +53,7 @@ def load_excel_pool_registry(filepath: Path = None, sheetname: str = "Sheet1"):
         )
 
     df = pd.read_excel(filepath, sheet_name=sheetname)
-    pool_reg = pool_reg_from_df(df)
+    pool_reg = pool_reg_from_df(df, asset_reg=load_asset_registry())
 
     return pool_reg
 
