@@ -21,13 +21,15 @@ def execute_washes(pool_reg: PoolRegistry) -> PoolRegistry:
 
     """
     while unmatched_washes(pool_reg=pool_reg):
-        pool_reg.sort(by="sale", ascending=True)
-        for pool in pool_reg:
-            if pool.potential_wash:
-                matched_pool = find_wash_match(pool_with_loss=pool, pool_reg=pool_reg)
-                if matched_pool is not None:
-                    pool_reg = execute_wash(pool, matched_pool, pool_reg=pool_reg)
-                    break  # break from the for loop and restart the while loop
+        candidate_pools = PoolRegistry(
+            [pool for pool in pool_reg if pool.potential_wash]
+        )
+        candidate_pools.sort(by="sale", ascending=True)
+        for pool in candidate_pools:
+            matched_pool = find_wash_match(pool_with_loss=pool, pool_reg=pool_reg)
+            if matched_pool is not None:
+                pool_reg = execute_wash(pool, matched_pool, pool_reg=pool_reg)
+                break  # break from the for loop and restart the while loop
     return pool_reg
 
 
@@ -97,21 +99,24 @@ def find_wash_match(pool_with_loss: Pool, pool_reg: PoolRegistry) -> Pool:
         pool_with_loss.potential_wash
     ), "Trying to find a wash match for a pool in which `potential_wash` fails. Asset must be fungible, pool must have negative net gain, and can't already have been triggered as a wash sale"
     loss_sale_date = pool_with_loss.sale_date
-    pool_reg.sort(by="purchase", ascending=True)
+    pools_with_asset = pool_reg.pools_with(asset=pool_with_loss.asset)
+    pools_within_window = PoolRegistry(
+        pools=[
+            pool
+            for pool in pools_with_asset
+            if pool.within_wash_window(date=loss_sale_date, kind="purchase")
+        ]
+    )
+    pools_within_window.sort(by="purchase", ascending=True)
     matched_pool = None
-    for pool in pool_reg:
-        within_wash_window = pool.within_wash_window(
-            date=loss_sale_date, kind="purchase"
-        )
+
+    for pool in pools_within_window:
         after_loss_sale = pool.purchase_date > loss_sale_date
-        matched_assets = pool.asset == pool_with_loss.asset
         not_already_paired = pool.wash.triggers_id is None
 
-        if all(
-            (within_wash_window, after_loss_sale, matched_assets, not_already_paired)
-        ):
+        if all((after_loss_sale, not_already_paired)):
             logging.debug(
-                f"Purchase {pool} triggers the wash rule in pool {pool_with_loss}"
+                f"Purchase\n{pool} triggers the wash rule in pool {pool_with_loss}"
             )
             matched_pool = pool
             break
