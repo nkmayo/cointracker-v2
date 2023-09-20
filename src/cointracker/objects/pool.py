@@ -209,7 +209,6 @@ class Pool:
 @dataclass
 class PoolRegistry:
     pools: list[Pool] = field(default_factory=list, repr=False)
-    _iter_idx: int = field(init=False, repr=False)
 
     def __len__(self) -> int:
         return len(self.pools)
@@ -252,16 +251,10 @@ class PoolRegistry:
             raise TypeError(f"")
 
     def __iter__(self):
-        self._iter_idx = 0
-        return self
+        return self.pools.__iter__()
 
     def __next__(self):
-        if self._iter_idx < len(self):
-            i = self._iter_idx
-            self._iter_idx += 1
-            return self.pools[i]
-        else:
-            raise StopIteration
+        return self.pools.__next__()
 
     def __getitem__(self, key):
         if isinstance(key, slice):

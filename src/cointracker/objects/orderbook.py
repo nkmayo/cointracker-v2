@@ -175,7 +175,6 @@ class Order:
 @dataclass
 class OrderBook:
     orders: list[Order] = field(default_factory=list, repr=False)
-    _iter_idx: int = field(init=False, repr=False)
 
     def __len__(self) -> int:
         return len(self.orders)
@@ -205,16 +204,10 @@ class OrderBook:
             raise TypeError(f"")
 
     def __iter__(self):
-        self._iter_idx = 0
-        return self
+        return self.orders.__iter__()
 
     def __next__(self):
-        if self._iter_idx < len(self):
-            i = self._iter_idx
-            self._iter_idx += 1
-            return self.orders[i]
-        else:
-            raise StopIteration
+        return self.orders.__next__()
 
     def __getitem__(self, key):
         if isinstance(key, slice):

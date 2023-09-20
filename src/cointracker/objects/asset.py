@@ -54,7 +54,6 @@ class AssetRegistry:
     assets: list[Asset] = field(
         default_factory=list, repr=False
     )  # TODO: consider refactoring using sets instead of lists
-    _iter_idx: int = field(init=False, repr=False)
 
     def to_yaml(self, filename):
         registry = {}
@@ -102,16 +101,10 @@ class AssetRegistry:
             raise TypeError(f"")
 
     def __iter__(self):
-        self._iter_idx = 0
-        return self
+        return self.assets.__iter__()
 
     def __next__(self):
-        if self._iter_idx < len(self):
-            i = self._iter_idx
-            self._iter_idx += 1
-            return self.assets[i]
-        else:
-            raise StopIteration
+        return self.assets.__next__()
 
     def __getitem__(self, key):
         if isinstance(key, slice):
