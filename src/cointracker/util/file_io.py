@@ -103,16 +103,33 @@ def load_from_v1_pools(filepath: Path = None, sheetname: str = "Sheet1"):
 # -----Export Functions-----
 
 
-def export_pool_reg(pool_reg: PoolRegistry, filename: str, iso=True) -> None:
+def export_pool_reg(
+    pool_reg: PoolRegistry, filename: str, iso=True, kind="default"
+) -> None:
     if ".xlsx" not in filename:
         filename = filename + ".xlsx"
     filepath = cfg.paths.data / filename
-    df = pool_reg.to_df(ascending=True, kind="default")
+    df = pool_reg.to_df(ascending=True, kind=kind)
 
     if iso:
-        df.purchase_date = df.purchase_date.apply(lambda x: x.isoformat())
-        df.sale_date = df.sale_date.apply(lambda x: x.isoformat())
+        if kind == "sales_report":
+            df["Purchase Date"] = df["Purchase Date"].apply(lambda x: x.isoformat())
+            df["Sale Date"] = df["Sale Date"].apply(lambda x: x.isoformat())
+            # excel cannot handle timezone aware datetimes, convert to string
+            df = df.astype({"Purchase Date": "str", "Sale Date": "str"})
+        elif kind in ["irs", "tax", "8949"]:
+            # Date format specified in header and cannot be changed
+            # excel cannot handle timezone aware datetimes, convert to string
+            df = df.astype(
+                {
+                    "Date Acquired (Mo., day, yr.)": "str",
+                    "Date Sold (Mo., day, yr.)": "str",
+                }
+            )
+        else:
+            df.purchase_date = df.purchase_date.apply(lambda x: x.isoformat())
+            df.sale_date = df.sale_date.apply(lambda x: x.isoformat())
+            # excel cannot handle timezone aware datetimes, convert to string
+            df = df.astype({"purchase_date": "str", "sale_date": "str"})
 
-    # excel cannot handle timezone aware datetimes, convert to string
-    df = df.astype({"purchase_date": "str", "sale_date": "str"})
     df.to_excel(filepath, "All Pools", index=False)
