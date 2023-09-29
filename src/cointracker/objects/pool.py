@@ -263,14 +263,15 @@ class PoolRegistry:
         elif isinstance(key, (int, np.integer)):
             return self.pools[key]
         elif isinstance(key, str):
-            asset = None
-            for asset_in_registry in self:
-                if asset_in_registry.name == key or asset_in_registry.ticker == key:
-                    asset = asset_in_registry
-            if asset is None:
-                raise ValueError(f"{key} not found in `AssetRegistry`")
-            else:
-                return asset
+            pools = [
+                pool
+                for pool in self
+                if (
+                    pool.asset.name.upper() == key.upper()
+                    or pool.asset.ticker.upper() == key.upper()
+                )
+            ]
+            return PoolRegistry(pools=pools)
         else:
             raise TypeError(f"Invalid argument type: {type(key)}")
 
