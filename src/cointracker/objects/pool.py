@@ -339,7 +339,7 @@ class PoolRegistry:
         """Converts the `PoolRegistry` object into a pandas DataFrame. Sorts orders by ascending date if `ascending=True`,
         descending date if `ascending=False` or does not change the ordering indicies if `ascending=None`.
         """
-        pool_reg = sort_pools(self, by="purchase", ascending=ascending)
+        pool_reg = sort_pools(self, by="sale", ascending=ascending)
         if kind == "sales_report":
             df = pd.DataFrame(
                 [pool.to_sales_report() for pool in pool_reg.closed_pools]
