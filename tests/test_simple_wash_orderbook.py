@@ -1,22 +1,6 @@
-from cointracker.objects.orderbook import Order, OrderBook
 from cointracker.objects.enumerated_values import OrderingStrategy
 from cointracker.process.execute import execute_order, execute_washes
-import pandas as pd
 import numpy as np
-import datetime
-
-"""
-    net_gain_no_wash = pool_reg.net_gain
-
-    disallowed_loss_wash = pool_reg.disallowed_loss
-    net_gain_wash = pool_reg.net_gain
-    gain_and_dis = net_gain_wash + disallowed_loss_wash
-    discrepancy_lim = 0.03
-    assert abs(gain_and_dis - net_gain_no_wash) < discrepancy_lim * abs(
-        net_gain_no_wash
-    ), f"Wash result ({net_gain_wash} + {disallowed_loss_wash}) has more than a {discrepancy_lim * 100:0.2f}% discrepancy from without wash ({net_gain_no_wash})"
-
-"""
 
 
 def test_simple_wash_orderbook_execution(simple_wash_orderbook) -> None:

@@ -3,7 +3,6 @@ from cointracker.objects.enumerated_values import OrderingStrategy
 from cointracker.process.execute import execute_order
 import pandas as pd
 import numpy as np
-import datetime
 
 
 def test_mixed_orderbook_creation(mixed_orderbook) -> None:
