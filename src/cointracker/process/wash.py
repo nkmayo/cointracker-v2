@@ -111,7 +111,9 @@ def find_wash_match(pool_with_loss: Pool, pool_reg: PoolRegistry) -> Pool:
     matched_pool = None
 
     for pool in pools_within_window:
-        after_loss_sale = pool.purchase_date > loss_sale_date
+        after_loss_sale = (
+            pool.purchase_date >= loss_sale_date
+        )  # NOTE: > vs >= has repercussions for trades on the same day with no timestamp
         not_already_paired = pool.wash.triggers_id is None
 
         if all((after_loss_sale, not_already_paired)):
