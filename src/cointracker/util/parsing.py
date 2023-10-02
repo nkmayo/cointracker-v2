@@ -257,11 +257,41 @@ def pool_reg_from_v1_df(dataframe: pd.DataFrame, asset_reg: AssetRegistry):
     return PoolRegistry(pools=pool_reg)
 
 
+def pool_reg_by_year(
+    pool_reg: PoolRegistry, years: list[int] = None, by_sale: bool = True
+) -> dict:
+    """Splits the pool registry by transaction year. If `by_sale` is `True` then only pools are included where the asset has been sold
+    and they are split by sale year. If `by_sale` is `False` then all pools are included and split by purchase year. If `years` is `None`
+    then the `PoolRegistry` is split among all years in which transactions occurred. The resulting `PoolRegistry`'s are returned in a
+    dictionary where the year is the keyword for its corresponding `PoolRegistry`.
+    """
+
+    if years is None:
+        if by_sale:
+            pool_reg = pool_reg.closed_pools
+            years = set([pool.sale_date.year for pool in pool_reg])
+        else:
+            years = set([pool.purchase_date.year for pool in pool_reg])
+
+    pool_regs = {}
+    for year in years:
+        if by_sale:
+            pool_regs[year] = PoolRegistry(
+                [pool for pool in pool_reg if pool.sale_date.year == year]
+            )
+        else:
+            pool_regs[year] = PoolRegistry(
+                [pool for pool in pool_reg if pool.purchase_date.year == year]
+            )
+
+    return pool_regs
+
+
 def pool_reg_by_type(pool_reg: PoolRegistry) -> list[PoolRegistry]:
     """Splits the pool registry into components without long-term holdings (`short_reg`), with long-term holdings (`long_reg`), and
     those that are "collectibles" (`coll_reg`). Returns a list of `PoolRegistry` objects in the order `short_reg`, `long_reg`, `coll_reg`.
     """
-    sale_pools = PoolRegistry([pool for pool in pool_reg if pool.closed])
+    sale_pools = pool_reg.closed_pools
     short_reg = PoolRegistry([pool for pool in sale_pools if pool.holdings_type])
     long_reg = PoolRegistry([pool for pool in sale_pools if not pool.holdings_type])
     coll_reg = PoolRegistry([pool for pool in sale_pools if not pool.asset.fungible])
