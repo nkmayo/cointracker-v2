@@ -136,22 +136,6 @@ def parse_orderbook(filename, sheet) -> pd.DataFrame:
     return df
 
 
-def str_to_datetime_utc(string: str) -> datetime.datetime:
-    """Converts a string to timezone aware utc time"""
-
-    if string == "NaT":
-        date = np.datetime64("NaT")
-    else:
-        if not isinstance(string, datetime.datetime):
-            date = parser.parse(string)  # parse the date to datetime
-        else:
-            date = string
-
-        date = date.replace(tzinfo=datetime.timezone.utc)  # convert to non-naive UTC
-
-    return date
-
-
 def orderbook_from_df(dataframe: pd.DataFrame, registry: AssetRegistry):
     orderbook = []
     for _, row in dataframe.iterrows():
@@ -271,6 +255,34 @@ def pool_reg_from_v1_df(dataframe: pd.DataFrame, asset_reg: AssetRegistry):
         pool_reg.append(pool)
 
     return PoolRegistry(pools=pool_reg)
+
+
+def pool_reg_by_type(pool_reg: PoolRegistry) -> list[PoolRegistry]:
+    """Splits the pool registry into components without long-term holdings (`short_reg`), with long-term holdings (`long_reg`), and
+    those that are "collectibles" (`coll_reg`). Returns a list of `PoolRegistry` objects in the order `short_reg`, `long_reg`, `coll_reg`.
+    """
+    sale_pools = PoolRegistry([pool for pool in pool_reg if pool.closed])
+    short_reg = PoolRegistry([pool for pool in sale_pools if pool.holdings_type])
+    long_reg = PoolRegistry([pool for pool in sale_pools if not pool.holdings_type])
+    coll_reg = PoolRegistry([pool for pool in sale_pools if not pool.asset.fungible])
+
+    return short_reg, long_reg, coll_reg
+
+
+def str_to_datetime_utc(string: str) -> datetime.datetime:
+    """Converts a string to timezone aware utc time"""
+
+    if string == "NaT":
+        date = np.datetime64("NaT")
+    else:
+        if not isinstance(string, datetime.datetime):
+            date = parser.parse(string)  # parse the date to datetime
+        else:
+            date = string
+
+        date = date.replace(tzinfo=datetime.timezone.utc)  # convert to non-naive UTC
+
+    return date
 
 
 def clean_uuid(id) -> uuid:
