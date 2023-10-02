@@ -49,6 +49,7 @@ class Pool:
 
     @property
     def holding_period(self) -> datetime.timedelta:
+        """Returns the total adjusted holding period of the sale or `None` if the pool is still open."""
         if self.open:
             return None
         else:
@@ -61,13 +62,15 @@ class Pool:
 
     @property
     def holdings_type(self) -> bool:
+        """Returns `True` if holdings are long-term, `False` if holdings are short-term, and `None` if the pool is open."""
         if self.open:
             return None
         else:
             return self.holding_period >= datetime.timedelta(days=366)
 
     @property
-    def holdings_type_str(self):
+    def holdings_type_str(self) -> str:
+        """Converts the `holdings_type` boolean and returns a descriptive string."""
         if self.open:
             return None
         elif self.holdings_type:
@@ -77,6 +80,7 @@ class Pool:
 
     @property
     def cost_basis(self):
+        """Returns the pool's total cost basis with adjustments and purchasing fees in fiat."""
         return (
             self.purchase_cost_fiat
             + self.wash.addition_to_cost_fiat
@@ -85,6 +89,7 @@ class Pool:
 
     @property
     def proceeds(self):
+        """Returns the pool's total proceeds in fiat, i.e. the sale value minus sale fees. Returns `None` if the pool is open."""
         if self.open:
             return None
         else:
@@ -92,6 +97,7 @@ class Pool:
 
     @property
     def net_gain(self):
+        """Returns the pool's net gain from proceeds in fiat, including any disallowed loss. Returns `None` if the pool is open."""
         if self.open:
             return None
         else:
@@ -100,6 +106,7 @@ class Pool:
 
     @property
     def potential_wash(self):
+        """Returns `True` if the pool could potentially become a wash sale and `False` otherwise."""
         if self.open:
             return False
         elif (self.asset.fungible) & (self.net_gain < 0) & (not self.is_wash):
@@ -109,6 +116,7 @@ class Pool:
 
     @property
     def closed(self) -> bool:
+        """Returns `True` if the pool is closed and the asset has been sold. Returns `False` otherwise"""
         if self.sale_date is None:
             return False
         else:
@@ -116,10 +124,12 @@ class Pool:
 
     @property
     def open(self) -> bool:
+        """Returns `True` if the pool is open and the asset has NOT been sold. Returns `False` otherwise"""
         return not self.closed
 
     @property
     def is_wash(self) -> bool:
+        """Returns `True` if the pool's cost basis is modified by a wash sale."""
         if self.wash.triggered_by_id is None:
             return False
         else:
