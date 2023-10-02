@@ -182,7 +182,7 @@ def set_pool_reg_df_dtypes(dataframe: pd.DataFrame) -> pd.DataFrame:
     dataframe.purchase_date = pd.to_datetime(dataframe.purchase_date)
     dataframe.sale_date = pd.to_datetime(dataframe.sale_date)
     dataframe = dataframe.replace({pd.NaT: None, pd.NA: None, float("nan"): None})
-    dataframe.id = dataframe.id.apply(uuid.UUID)
+    dataframe.id = dataframe.id.apply(clean_uuid)
     dataframe.triggered_by_id = dataframe.triggered_by_id.apply(
         lambda x: uuid.UUID(x) if x is not None else None
     )
@@ -237,6 +237,102 @@ def pool_reg_from_df(dataframe: pd.DataFrame, asset_reg: AssetRegistry):
         )
 
     return PoolRegistry(pools=pool_reg)
+
+
+def pool_reg_from_v1_df(dataframe: pd.DataFrame, asset_reg: AssetRegistry):
+    """Creates a `PoolRegistry` from the input `dataframe`."""
+    pool_reg = []
+    old_ids = dataframe.id.copy()
+    dataframe = set_pool_reg_df_dtypes(dataframe=dataframe)
+    new_ids = dataframe.id.copy()
+    id_dict = {old_id: new_ids[i] for i, old_id in enumerate(old_ids)}
+    for _, row in dataframe.iterrows():
+        pool_dict = row.to_dict()
+        try:
+            pool_dict["asset"] = asset_reg[
+                pool_dict["asset"]
+            ]  # use ticker to get Asset
+        except AssetNotFoundError(
+            f"Asset {pool_dict['asset']} not found. Please enter asset details"
+        ):
+            asset_reg.assets.append(Asset(**register_asset_dialogue()))
+        wash_dict = {}
+        wash_dict["triggered_by_id"] = pool_dict.pop("triggered_by_id")
+        wash_dict["triggers_id"] = pool_dict.pop("triggers_id")
+        wash_dict["addition_to_cost_fiat"] = pool_dict.pop("addition_to_cost_fiat")
+        wash_dict["disallowed_loss_fiat"] = pool_dict.pop("disallowed_loss_fiat")
+        wash_dict["holding_period_modifier"] = pool_dict.pop("holding_period_modifier")
+
+        pool = Pool(
+            **pool_dict,
+            wash=Wash(**wash_dict),
+        )
+        pool = convert_v1_ids(pool_df=pool, id_dict=id_dict)
+        pool_reg.append(pool)
+
+    return PoolRegistry(pools=pool_reg)
+
+
+def clean_uuid(id) -> uuid:
+    try:
+        new_id = uuid.UUID(id)
+    except Exception:
+        new_id = uuid.uuid4()
+    return new_id
+
+
+def convert_purchase_v1_ids(
+    purchase_pool_df: pd.DataFrame, purchase_id_dict: dict, sale_id_dict: dict
+) -> pd.DataFrame:
+    """Converts v1 Purchase Pool IDs into a UUID equivalent with mappings (old id->new id) provided by
+    `purchase_id_dict` and `sale_id_dict`
+    """
+    purchase_pool_df.id = purchase_pool_df.id.apply(lambda x: purchase_id_dict[x])
+    purchase_pool_df.triggers_id = purchase_pool_df.triggers_id.apply(
+        lambda x: sale_id_dict[x] if x in sale_id_dict.keys() else None
+    )
+
+    return purchase_pool_df
+
+
+def convert_sale_v1_ids(
+    sale_pool_df: pd.DataFrame, purchase_id_dict: dict, sale_id_dict: dict
+) -> pd.DataFrame:
+    """Converts v1 Sale Pool IDs into a UUID equivalent with mappings (old id->new id) provided by
+    `purchase_id_dict` and `sale_id_dict`
+    """
+    sale_pool_df.id = sale_pool_df.id.apply(lambda x: sale_id_dict[x])
+    sale_pool_df.triggered_by_id = sale_pool_df.triggered_by_id.apply(
+        lambda x: purchase_id_dict[x] if x in purchase_id_dict.keys() else None
+    )
+    sale_pool_df.triggers_id = sale_pool_df.triggers_id.apply(
+        lambda x: sale_id_dict[x] if x in sale_id_dict.keys() else None
+    )
+
+    return sale_pool_df
+
+
+def convert_v1_ids(
+    purchase_pool_df: pd.DataFrame,
+    sale_pool_df: pd.DataFrame,
+    purchase_id_dict: dict,
+    sale_id_dict: dict,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Converts v1 Purchase and Sale Pool IDs into a UUID equivalent with mappings (old id->new id) provided by
+    `purchase_id_dict` and `sale_id_dict`"""
+
+    purchase_pool_df = convert_purchase_v1_ids(
+        purchase_pool_df=purchase_pool_df,
+        purchase_id_dict=purchase_id_dict,
+        sale_id_dict=sale_id_dict,
+    )
+    sale_pool_df = convert_sale_v1_ids(
+        sale_pool_df=sale_pool_df,
+        purchase_id_dict=purchase_id_dict,
+        sale_id_dict=sale_id_dict,
+    )
+
+    return purchase_pool_df, sale_pool_df
 
 
 def split_markets_str(markets: str):

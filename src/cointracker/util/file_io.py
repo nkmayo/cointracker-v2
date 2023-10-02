@@ -4,13 +4,15 @@ from pathlib import Path
 
 from cointracker.objects.asset import AssetRegistry, import_registry
 from cointracker.objects.pool import Pool, PoolRegistry, Wash
+from cointracker.objects.exceptions import IncorrectPoolFormat
 from cointracker.settings.config import cfg
 from cointracker.util.parsing import (
     parse_orderbook,
     orderbook_from_df,
     pool_reg_from_df,
+    clean_uuid,
+    convert_v1_ids,
 )
-
 
 # -----Import Functions-----
 
@@ -58,24 +60,22 @@ def load_excel_pool_registry(filepath: Path = None, sheetname: str = "Sheet1"):
     return pool_reg
 
 
-def load_from_v1_pools(filepath: Path = None, sheetname: str = "Sheet1"):
-    """Loads the EOY Purchase Pools into a `PoolRegistry` object.
-    NOTE: V1 EOY Asset Pools only contain "Active" (open) orders. EOY Purchase Pools contain both Active and Inactive orders
-    which are needed to correctly account for potential wash sales from December of the previous year.
-    TODO: Can you get sale information from the Asset Pools that aren't active?
-    """
+def load_v1_purchase_pool(
+    filepath: Path = None, sheetname: str = "Sheet1"
+) -> pd.DataFrame:
+    """Loads the EOY Purchase Pools into a `PoolRegistry` object."""
     if filepath is None:
         filepath = filedialog.askopenfilename(
-            title="Select pool registry file",
+            title="Select Purchase Pool file",
             filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")),
         )
-
+    print(f"Filepath: {filepath}")
     v1_df = pd.read_excel(filepath, sheet_name=sheetname)
-
     v2_info = []
-    for row in v1_df.iterrows():
+    for _, row in v1_df.iterrows():
         v2_info.append(
             {
+                "id": row["Pool ID"],
                 "asset": row["Asset"],
                 "amount": row["Amount"],
                 "purchase_date": row["Purchase Date"],
@@ -84,9 +84,9 @@ def load_from_v1_pools(filepath: Path = None, sheetname: str = "Sheet1"):
                 "sale_date": None,
                 "sale_value_fiat": None,
                 "sale_fee_fiat": None,
-                "triggered_by_id": None
-                if row["Initiates Wash"] == 0
-                else row["Initiates Wash"],
+                "triggered_by_id": row["Initiates Wash"]
+                if row["Initiates Wash"] != 0
+                else None,
                 "triggers_id": None,  # Can't tell which pool it may have triggered
                 "disallowed_loss_fiat": row["Modified Cost Basis"] - row["Cost Basis"],
                 "holding_period_modifier": row["Holding Period Modifier"],
@@ -94,10 +94,98 @@ def load_from_v1_pools(filepath: Path = None, sheetname: str = "Sheet1"):
         )
 
     v2_df = pd.DataFrame(v2_info)
-    pool_reg = pool_reg_from_df(v2_df)
-    # TODO: Go through and find which v1 ID corresponds with which v2 ID and update wash.triggerd_by_id
 
-    return pool_reg
+    return v2_df
+
+
+def load_v1_sale_pool(filepath: Path = None, sheetname: str = "Sheet1"):
+    """Loads the EOY Sale Pools into a `PoolRegistry` object.
+    NOTE: V1 EOY Asset Pools only contain "Active" (open) orders. EOY Sale Pools contain both Active and Inactive orders
+    which are needed to correctly account for potential wash sales from December of the previous year.
+    TODO: Can you get sale information from the Asset Pools that aren't active?
+    """
+    if filepath is None:
+        filepath = filedialog.askopenfilename(
+            title="Select Sale Pool file",
+            filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")),
+        )
+
+    v1_df = pd.read_excel(filepath, sheet_name=sheetname)
+
+    v2_info = []
+    for _, row in v1_df.iterrows():
+        v2_info.append(
+            {
+                "id": row["Pool ID"],
+                "asset": row["Asset Sold"],
+                "amount": row["Amount"],
+                "purchase_date": row["Purchase Date"],
+                "purchase_cost_fiat": row["Cost Basis"],
+                "purchase_fee_fiat": 0.0,
+                "sale_date": row["Sale Date"],
+                "sale_value_fiat": row["Proceeds"] + row["Fee USD"],
+                "sale_fee_fiat": row["Fee USD"],
+                "triggered_by_id": row["Wash Pool ID"]
+                if row["Wash Pool ID"] != 0
+                else None,
+                "triggers_id": None,  # Can't tell which pool it may have triggered
+                "disallowed_loss_fiat": row["Disallowed Loss"],
+                "holding_period_modifier": row[
+                    "Holding Period"
+                ],  # to be corrected after changing to timedelta
+            }
+        )
+
+    v2_df = pd.DataFrame(v2_info)
+
+    return v2_df
+
+
+def load_from_v1_pools(
+    purchase_pools_filepath: Path = None,
+    purchase_pools_sheetname: str = "Sheet1",
+    sale_pools_filepath: Path = None,
+    sale_pools_sheetname: str = "Sheet1",
+):
+    """Loads the EOY Purchase Pools into a `PoolRegistry` object.
+    NOTE: V1 EOY Asset Pools only contain "Active" (open) orders. EOY Purchase Pools contain both Active and Inactive orders
+    which are needed to correctly account for potential wash sales from December of the previous year.
+    TODO: Can you get sale information from the Asset Pools that aren't active?
+    """
+
+    purchase_pools = load_v1_purchase_pool(
+        filepath=purchase_pools_filepath, sheetname=purchase_pools_sheetname
+    )
+    print(purchase_pools)
+    sale_pools = load_v1_sale_pool(
+        filepath=sale_pools_filepath, sheetname=sale_pools_sheetname
+    )
+    print(sale_pools)
+
+    # Resolve IDs
+    purchase_ids = {i: clean_uuid(i) for i in purchase_pools.id}
+    sale_ids = {i: clean_uuid(i) for i in sale_pools.id}
+
+    purchase_pools, sale_pools = convert_v1_ids(
+        purchase_pool_df=purchase_pools,
+        sale_pool_df=sale_pools,
+        purchase_id_dict=purchase_ids,
+        sale_id_dict=sale_ids,
+    )
+
+    print(f"after:\n{sale_pools}")
+    asset_reg = load_asset_registry()
+    purchase_pool_reg = pool_reg_from_df(purchase_pools, asset_reg=asset_reg)
+    sale_pool_reg = pool_reg_from_df(sale_pools, asset_reg=asset_reg)
+
+    # Correct holding period modifier on sale pools (is currently entire holding period)
+    for pool in sale_pool_reg:
+        if pool.is_wash:
+            pool.wash.holding_period_modifier = pool.wash.holding_period_modifier - (
+                pool.sale_date - pool.purchase_date
+            )
+
+    return PoolRegistry([*purchase_pool_reg, *sale_pool_reg])
 
 
 # -----Export Functions-----
