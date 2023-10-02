@@ -287,16 +287,23 @@ def pool_reg_by_year(
     return pool_regs
 
 
-def pool_reg_by_type(pool_reg: PoolRegistry) -> list[PoolRegistry]:
-    """Splits the pool registry into components without long-term holdings (`short_reg`), with long-term holdings (`long_reg`), and
-    those that are "collectibles" (`coll_reg`). Returns a list of `PoolRegistry` objects in the order `short_reg`, `long_reg`, `coll_reg`.
+def pool_reg_by_type(pool_reg: PoolRegistry) -> dict:
+    """Splits the pool registry into components short-term holdings (`shorts`), with long-term holdings (`longs`), and
+    those that are "collectibles" (`collectibles`). Returns a dictionary of `PoolRegistry` objects with the corresponding key.
     """
     sale_pools = pool_reg.closed_pools
-    short_reg = PoolRegistry([pool for pool in sale_pools if pool.holdings_type])
-    long_reg = PoolRegistry([pool for pool in sale_pools if not pool.holdings_type])
-    coll_reg = PoolRegistry([pool for pool in sale_pools if not pool.asset.fungible])
+    pool_dict = {}
+    pool_dict["shorts"] = PoolRegistry(
+        [pool for pool in sale_pools if pool.holdings_type]
+    )
+    pool_dict["longs"] = PoolRegistry(
+        [pool for pool in sale_pools if not pool.holdings_type]
+    )
+    pool_dict["collectibles"] = PoolRegistry(
+        [pool for pool in sale_pools if not pool.asset.fungible]
+    )
 
-    return short_reg, long_reg, coll_reg
+    return pool_dict
 
 
 def str_to_datetime_utc(string: str) -> datetime.datetime:
