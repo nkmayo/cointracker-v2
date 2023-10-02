@@ -277,7 +277,12 @@ def pool_reg_by_year(
     for year in years:
         if by_sale:
             pool_regs[year] = PoolRegistry(
-                [pool for pool in pool_reg if pool.sale_date.year == year]
+                [
+                    pool
+                    for pool in pool_reg
+                    if pool.sale_date is not None
+                    if pool.sale_date.year == year
+                ]
             )
         else:
             pool_regs[year] = PoolRegistry(
