@@ -116,7 +116,7 @@ class Pool:
 
     @property
     def closed(self) -> bool:
-        """Returns `True` if the pool is closed and the asset has been sold. Returns `False` otherwise"""
+        """Returns `True` if the pool is closed and the asset has been sold. Returns `False` otherwise."""
         if self.sale_date is None:
             return False
         else:
@@ -124,7 +124,7 @@ class Pool:
 
     @property
     def open(self) -> bool:
-        """Returns `True` if the pool is open and the asset has NOT been sold. Returns `False` otherwise"""
+        """Returns `True` if the pool is open and the asset has NOT been sold. Returns `False` otherwise."""
         return not self.closed
 
     @property
@@ -296,30 +296,56 @@ class PoolRegistry:
 
     @property
     def closed_pools(self):
+        """Pools where the asset has been sold."""
         return PoolRegistry([pool for pool in self if pool.closed])
 
     @property
     def open_pools(self):
+        """Pools where the asset has not been sold."""
         return PoolRegistry([pool for pool in self if pool.open])
 
     @property
-    def proceeds(self):
+    def shorts(self):
+        """Short-term holding pools."""
+        return PoolRegistry([pool for pool in self.closed_pools if pool.holdings_type])
+
+    @property
+    def longs(self):
+        """Long-term holding pools."""
+        return PoolRegistry(
+            [pool for pool in self.closed_pools if not pool.holdings_type]
+        )
+
+    @property
+    def nfts(self):
+        """Sales of collectibles/non-fungible tokens."""
+        return PoolRegistry(
+            [pool for pool in self.closed_pools if not pool.asset.fungible]
+        )
+
+    @property
+    def proceeds(self) -> float:
+        """Net proceeds from all pools."""
         return sum([pool.proceeds for pool in self if pool.closed])
 
     @property
-    def cost_basis(self):
+    def cost_basis(self) -> float:
+        """Net cost basis from all pools"""
         return sum([pool.cost_basis for pool in self if pool.closed])
 
     @property
-    def disallowed_loss(self):
+    def disallowed_loss(self) -> float:
+        """Net disallowed loss from all pools."""
         return sum([pool.wash.disallowed_loss_fiat for pool in self if pool.closed])
 
     @property
-    def net_gain(self):
+    def net_gain(self) -> float:
+        """Net gain from all pools."""
         return sum([pool.net_gain for pool in self if pool.closed])
 
     @property
-    def is_empty(self):
+    def is_empty(self) -> bool:
+        """Returns `True` if the `PoolRegistry` has no elements, `False` otherwise."""
         return len(self.pools) == 0
 
     def idx_for_id(self, id: uuid):
