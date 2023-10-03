@@ -296,17 +296,10 @@ def pool_reg_by_type(pool_reg: PoolRegistry) -> dict:
     """Splits the pool registry into components short-term holdings (`shorts`), with long-term holdings (`longs`), and
     those that are "collectibles" (`collectibles`). Returns a dictionary of `PoolRegistry` objects with the corresponding key.
     """
-    sale_pools = pool_reg.closed_pools
     pool_dict = {}
-    pool_dict["shorts"] = PoolRegistry(
-        [pool for pool in sale_pools if pool.holdings_type]
-    )
-    pool_dict["longs"] = PoolRegistry(
-        [pool for pool in sale_pools if not pool.holdings_type]
-    )
-    pool_dict["collectibles"] = PoolRegistry(
-        [pool for pool in sale_pools if not pool.asset.fungible]
-    )
+    pool_dict["shorts"] = pool_reg.shorts
+    pool_dict["longs"] = pool_reg.longs
+    pool_dict["collectibles"] = pool_reg.nfts
 
     return pool_dict
 
