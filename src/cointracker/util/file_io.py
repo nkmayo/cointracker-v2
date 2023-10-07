@@ -1,6 +1,7 @@
 import pandas as pd
 from tkinter import filedialog
 from pathlib import Path
+import warnings
 
 from cointracker.objects.asset import AssetRegistry, import_registry
 from cointracker.objects.pool import Pool, PoolRegistry, Wash
@@ -12,6 +13,7 @@ from cointracker.util.parsing import (
     pool_reg_from_df,
     clean_uuid,
     convert_v1_ids,
+    consolidate_pool_reg,
 )
 
 # -----Import Functions-----
@@ -192,11 +194,23 @@ def load_from_v1_pools(
 
 
 def export_pool_reg(
-    pool_reg: PoolRegistry, filename: str, iso=True, kind="default"
+    pool_reg: PoolRegistry,
+    filename: str,
+    iso: bool = True,
+    kind: str = "default",
+    consolidate: bool = False,
 ) -> None:
     if ".xlsx" not in filename:
         filename = filename + ".xlsx"
     filepath = cfg.paths.data / filename
+
+    if consolidate:
+        pool_reg = consolidate_pool_reg(pool_reg=pool_reg)
+        if kind not in ["sales_report", "irs", "tax", "8949"]:
+            warnings.warn(
+                "Non-report style data being produced with consolidated pool registry"
+            )
+
     df = pool_reg.to_df(ascending=True, kind=kind)
 
     if iso:
