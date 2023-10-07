@@ -99,7 +99,7 @@ def find_wash_match(pool_with_loss: Pool, pool_reg: PoolRegistry) -> Pool:
         pool_with_loss.potential_wash
     ), "Trying to find a wash match for a pool in which `potential_wash` fails. Asset must be fungible, pool must have negative net gain, and can't already have been triggered as a wash sale"
     loss_sale_date = pool_with_loss.sale_date
-    pools_with_asset = pool_reg.pools_with(asset=pool_with_loss.asset)
+    pools_with_asset = pool_reg[pool_with_loss.asset.ticker]
     pools_within_window = PoolRegistry(
         pools=[
             pool

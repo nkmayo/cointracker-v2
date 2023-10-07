@@ -62,7 +62,7 @@ def execute_sell(
         f"entered execute_sell of asset {sell_txn.asset.ticker} and amount {sell_txn.amount}:\n{pool_reg}"
     )
     """Executes the sale side of an order using the specified `strategy`."""
-    candidate_pools = pool_reg.pools_with(sell_txn.asset, open=True)
+    candidate_pools = pool_reg[sell_txn.asset.ticker].open_pools
 
     if strategy == OrderingStrategy.FIFO:
         candidate_pools.sort(by="sale", ascending=True)
@@ -70,7 +70,7 @@ def execute_sell(
         candidate_pools.sort(by="sale", ascending=False)
 
     if candidate_pools.is_empty:
-        non_candidate_pools = pool_reg.pools_with(sell_txn.asset, open=False)
+        non_candidate_pools = pool_reg[sell_txn.asset.ticker].closed_pools
         print(f"sell_txn:\n{sell_txn}")
         print(
             f"All pools with {sell_txn.asset}:\n{non_candidate_pools.to_df(kind='dict')}"
