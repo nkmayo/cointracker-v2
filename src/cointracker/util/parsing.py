@@ -423,7 +423,6 @@ def consolidate_pool_reg(pool_reg: PoolRegistry) -> PoolRegistry:
     )
     for group in uuid_groups:
         pool_group = PoolRegistry([pool for pool in pool_reg if pool.id in group])
-        print(pool_group)
         consolidated_pool = pool_group[0].copy()
         for i, pool in enumerate(pool_group):
             if i > 0:
