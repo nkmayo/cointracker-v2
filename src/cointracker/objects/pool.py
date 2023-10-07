@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from cointracker.objects.asset import Asset
 
 WASH_WINDOW = datetime.timedelta(days=31)
+VARIOUS_DATES_MICROSECOND = 123456
 
 
 @dataclass
@@ -38,14 +39,17 @@ class Pool:
     id: uuid = field(default_factory=uuid.uuid4)  # don't share the same instance
 
     def __repr__(self) -> str:
-        if self.sale_date is None:
-            sale_date = "None"
-        else:
-            sale_date = self.sale_date.strftime("%Y/%m/%d")
-
-        return f"Pool(\nid: {self.id}, \npurchase date: {self.purchase_date.strftime('%Y/%m/%d')}, \nsale date: {sale_date}, \
+        return f"Pool(\nid: {self.id}, \npurchase date: {self.purchase_date_str}, \nsale date: {self.sale_date_str}, \
                 \nasset: {self.asset.ticker}, \namount: {self.amount}, \ncost_fiat: {self.purchase_cost_fiat}, \
                 \nsale_fiat: {self.sale_value_fiat}\n)\n\n"
+
+    @property
+    def purchase_date_str(self) -> str:
+        return date_to_str(self.purchase_date, kind="sales report")
+
+    @property
+    def sale_date_str(self) -> str:
+        return date_to_str(self.sale_date, kind="sales report")
 
     @property
     def holding_period(self) -> datetime.timedelta:
@@ -171,8 +175,8 @@ class Pool:
         if self.closed:
             return {
                 "Asset Sold": self.asset.ticker,
-                "Purchase Date": self.purchase_date.strftime("%Y-%m-%d"),
-                "Sale Date": self.sale_date.strftime("%Y-%m-%d"),
+                "Purchase Date": date_to_str(self.purchase_date, kind="sales report"),
+                "Sale Date": date_to_str(self.sale_date, kind="sales report"),
                 "Amount": self.amount,
                 "Spot Price (USD)": self.sale_value_fiat / self.amount,
                 "Fee": self.sale_fee_fiat,
@@ -192,10 +196,10 @@ class Pool:
         if self.closed:
             return {
                 "Description of Property": f"{self.amount} of {self.asset.ticker}",
-                "Date Acquired (Mo., day, yr.)": self.purchase_date.strftime(
-                    "%m/%d/%Y"
+                "Date Acquired (Mo., day, yr.)": date_to_str(
+                    self.purchase_date, kind="irs"
                 ),
-                "Date Sold (Mo., day, yr.)": self.sale_date.strftime("%m/%d/%Y"),
+                "Date Sold (Mo., day, yr.)": date_to_str(self.sale_date, kind="irs"),
                 "Proceeds": self.proceeds,
                 "Cost Basis": self.cost_basis,
                 "Adjustment Code": "W" if self.is_wash else "",
@@ -513,3 +517,18 @@ def sort_pools(
         raise ValueError(f"Unrecognized sort argument `by={by}`.")
 
     return PoolRegistry(pools=pools)
+
+
+def date_to_str(date: datetime.datetime, kind: str = "default"):
+    if date is None:
+        date_str = "None"
+    elif date.microsecond == VARIOUS_DATES_MICROSECOND:
+        date_str = "Various Dates"
+    elif kind.lower() == "sales report":
+        date_str = date.strftime("%Y/%m/%d")
+    elif kind.lower() in ["irs", "tax", "8949"]:
+        date_str = date.strftime("%m/%d/%Y")
+    else:
+        date_str = date.strftime("%Y/%m/%d %H:%M:%S")
+
+    return date_str
