@@ -326,43 +326,136 @@ class PoolRegistry:
     @property
     def proceeds(self) -> float:
         """Net proceeds from all pools."""
-        return sum([pool.proceeds for pool in self if pool.closed])
+        return np.around(
+            sum([pool.proceeds for pool in self if pool.closed]), decimals=2
+        )
 
     @property
     def cost_basis(self) -> float:
         """Net cost basis from all pools"""
-        return sum([pool.cost_basis for pool in self if pool.closed])
+        return np.around(
+            sum([pool.cost_basis for pool in self if pool.closed]), decimals=2
+        )
 
     @property
     def disallowed_loss(self) -> float:
         """Net disallowed loss from all pools."""
-        return sum([pool.wash.disallowed_loss_fiat for pool in self if pool.closed])
+        return np.around(
+            sum([pool.wash.disallowed_loss_fiat for pool in self if pool.closed]),
+            decimals=2,
+        )
 
     @property
     def net_gain(self) -> float:
         """Net gain from all pools."""
-        return sum([pool.net_gain for pool in self if pool.closed])
+        return np.around(
+            sum([pool.net_gain for pool in self if pool.closed]), decimals=2
+        )
 
     @property
     def is_empty(self) -> bool:
         """Returns `True` if the `PoolRegistry` has no elements, `False` otherwise."""
         return len(self.pools) == 0
 
+    @property
+    def tickers(self) -> set:
+        """Returns the set of tickers for all assets contained within the `PoolRegistry`."""
+        return {pool.asset.ticker for pool in self}
+
+    @property
+    def assets(self):
+        """Returns the set of unique `Asset`s contained within the `PoolRegistry`."""
+        return {pool.asset for pool in self}
+
+    @property
+    def washes(self):
+        """All `Pool`s that contain a disallowed loss.
+        NOTE: The technical definition is that the pool contains a `wash.triggered_by_id`, but these pools subsequently have
+        a disallowed wash added.
+        """
+        return PoolRegistry([pool for pool in self if pool.is_wash])
+
+    @property
+    def not_washes(self):
+        """All `Pool`s that do not contain a disallowed loss.
+        NOTE: The technical definition is that the pool's `wash.triggered_by_id is None`.
+        """
+        return PoolRegistry([pool for pool in self if not pool.is_wash])
+
     def idx_for_id(self, id: uuid):
         """Returns the index (as currently sorted) within the `pools` list of the pool with id `id`."""
         return ([pool.id for pool in self]).index(id)
 
-    def pools_with(self, asset: Asset, open: bool = None):
-        """Returns the subset of pools with asset matching `asset`. If `open=None` all matching pools are returned. If
-        `open=True` then only open pools are returned. If `open=False` then only closed pools are returned.
+    def pools_with(
+        self,
+        asset: Asset = None,
+        open: bool = None,
+        long_term: bool = None,
+        wash: bool = None,
+        purchase_date: datetime = None,
+        sale_date: datetime = None,
+        explicit_date: bool = False,
+    ):
+        """Returns the subset of pools with with the matching conditions. Any of the parameters that are `None` have no effect on the
+        filtering process. If `explicit_date` is `False` then all pools that match to the day are returned.
         """
-        subset = PoolRegistry([pool for pool in self if pool.asset == asset])
+        if asset is None:
+            subset = self
+        else:
+            subset = self[asset.ticker]
+
         if open is None:
             pass
         elif open:
             subset = subset.open_pools
         else:
             subset = subset.closed_pools
+
+        if long_term is None:
+            pass
+        elif long_term:
+            subset = subset.longs
+        else:
+            subset = subset.shorts
+
+        if wash is None:
+            pass
+        elif wash:
+            subset = subset.washes
+        else:
+            subset.not_washes
+
+        if purchase_date is None:
+            pass
+        else:
+            if explicit_date:
+                subset = PoolRegistry(
+                    [pool for pool in subset if pool.purchase_date == purchase_date]
+                )
+            else:
+                subset = PoolRegistry(
+                    [
+                        pool
+                        for pool in subset
+                        if pool.purchase_date.date() == purchase_date.date()
+                    ]
+                )
+
+        if sale_date is None:
+            pass
+        else:
+            if explicit_date:
+                subset = PoolRegistry(
+                    [pool for pool in subset if pool.sale_date == sale_date]
+                )
+            else:
+                subset = PoolRegistry(
+                    [
+                        pool
+                        for pool in subset
+                        if pool.sale_date.date() == sale_date.date()
+                    ]
+                )
 
         return subset
 
