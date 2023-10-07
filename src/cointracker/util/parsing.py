@@ -423,6 +423,7 @@ def consolidate_pool_reg(pool_reg: PoolRegistry) -> PoolRegistry:
     )
     for group in uuid_groups:
         pool_group = PoolRegistry([pool for pool in pool_reg if pool.id in group])
+        print(pool_group)
         consolidated_pool = pool_group[0].copy()
         for i, pool in enumerate(pool_group):
             if i > 0:
@@ -437,6 +438,16 @@ def consolidate_pool_reg(pool_reg: PoolRegistry) -> PoolRegistry:
                 consolidated_pool.wash.disallowed_loss_fiat += (
                     pool.wash.disallowed_loss_fiat
                 )
+
+                # Set to "Various Dates" if more than one
+                if pool.purchase_date.date() != consolidated_pool.purchase_date.date():
+                    consolidated_pool.purchase_date = (
+                        consolidated_pool.purchase_date.replace(microsecond=123456)
+                    )
+                if pool.sale_date.date() != consolidated_pool.sale_date.date():
+                    consolidated_pool.sale_date = consolidated_pool.sale_date.replace(
+                        microsecond=123456
+                    )
 
         assert pool_group.net_gain == np.around(
             consolidated_pool.net_gain, decimals=2
