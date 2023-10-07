@@ -320,7 +320,7 @@ def str_to_datetime_utc(string: str) -> datetime.datetime:
     return date
 
 
-def clean_uuid(id) -> uuid:
+def clean_uuid(id) -> uuid.UUID:
     try:
         new_id = uuid.UUID(id)
     except Exception:
@@ -412,3 +412,105 @@ def orderbook_header():
         "Market 2 Fiat Spot Price",
         "Fee Asset Fiat Spot Price",
     ]
+
+
+def consolidate_pool_reg(pool_reg: PoolRegistry) -> PoolRegistry:
+    """Warning: Some information unique to pools is discarded during consolidation."""
+    uuid_groups = similar_pools(pool_reg=pool_reg)
+    all_uuids = [id for group in uuid_groups for id in group]
+    consolidated_reg = PoolRegistry(
+        pools=[pool for pool in pool_reg if pool.id not in all_uuids]
+    )
+    for group in uuid_groups:
+        pool_group = PoolRegistry([pool for pool in pool_reg if pool.id in group])
+        print(pool_group)
+        consolidated_pool = pool_group[0].copy()
+        for i, pool in enumerate(pool_group):
+            if i > 0:
+                consolidated_pool.amount += pool.amount
+                consolidated_pool.purchase_cost_fiat += pool.purchase_cost_fiat
+                consolidated_pool.purchase_fee_fiat += pool.purchase_fee_fiat
+                consolidated_pool.sale_value_fiat += pool.sale_value_fiat
+                consolidated_pool.sale_fee_fiat += pool.sale_fee_fiat
+                consolidated_pool.wash.addition_to_cost_fiat += (
+                    pool.wash.addition_to_cost_fiat
+                )
+                consolidated_pool.wash.disallowed_loss_fiat += (
+                    pool.wash.disallowed_loss_fiat
+                )
+
+        assert pool_group.net_gain == np.around(
+            consolidated_pool.net_gain, decimals=2
+        ), "Consolidated pool and group should have same net gain"
+        assert pool_group.proceeds == np.around(
+            consolidated_pool.proceeds, decimals=2
+        ), "Consolidated pool and group should have same proceeds"
+        assert pool_group.disallowed_loss == np.around(
+            consolidated_pool.wash.disallowed_loss_fiat, decimals=2
+        ), "Consolidated pool and group should have same disallowed loss"
+
+        consolidated_reg = consolidated_reg + consolidated_pool
+
+    assert (
+        pool_reg.net_gain == consolidated_reg.net_gain
+    ), "Consolidated pool registry should have same net gain as before consolidation"
+    assert (
+        pool_reg.proceeds == consolidated_reg.proceeds
+    ), "Consolidated pool registry should have same net gain as before consolidation"
+    assert (
+        pool_reg.disallowed_loss == consolidated_reg.disallowed_loss
+    ), "Consolidated pool registry should have same net gain as before consolidation"
+    return consolidated_reg
+
+
+def similar_pools(pool_reg: PoolRegistry) -> set[list[uuid.UUID]]:
+    """For now only consider sale pools..."""
+    pool_reg = pool_reg.closed_pools
+    uuid_groups = []
+    for ticker in pool_reg.tickers:
+        asset_pools = pool_reg[ticker]
+        asset_pools_washes = asset_pools.washes
+
+        asset_pools_washes_shorts = asset_pools_washes.shorts
+        for pool in asset_pools_washes_shorts:
+            pool_group = asset_pools_washes_shorts.pools_with(
+                sale_date=pool.sale_date, explicit_date=False
+            )
+            group = {pool.id for pool in pool_group}
+            if (len(group) > 1) and (group not in uuid_groups):
+                uuid_groups.append(group)
+
+        asset_pools_washes_longs = asset_pools_washes.longs
+        for pool in asset_pools_washes_longs:
+            pool_group = asset_pools_washes_longs.pools_with(
+                sale_date=pool.sale_date, explicit_date=False
+            )
+            group = {pool.id for pool in pool_group}
+            if (len(group) > 1) and (group not in uuid_groups):
+                uuid_groups.append(group)
+
+        asset_pools_not_washes = asset_pools.not_washes
+        asset_pools_not_washes_shorts = asset_pools_not_washes.shorts
+        for pool in asset_pools_not_washes_shorts:
+            pool_group = asset_pools_not_washes_shorts.pools_with(
+                sale_date=pool.sale_date, explicit_date=False
+            )
+            group = {pool.id for pool in pool_group}
+            if (len(group) > 1) and (group not in uuid_groups):
+                uuid_groups.append(group)
+
+        asset_pools_not_washes_longs = asset_pools_not_washes.longs
+        for pool in asset_pools_not_washes_longs:
+            pool_group = asset_pools_not_washes_longs.pools_with(
+                sale_date=pool.sale_date, explicit_date=False
+            )
+            group = {pool.id for pool in pool_group}
+            if (len(group) > 1) and (group not in uuid_groups):
+                uuid_groups.append(group)
+
+    all_uuids = [id for group in uuid_groups for id in group]
+    assert len(all_uuids) == len(
+        set(all_uuids)
+    ), "All UUIDs in groups of similar pools should be unique."
+
+    return uuid_groups
