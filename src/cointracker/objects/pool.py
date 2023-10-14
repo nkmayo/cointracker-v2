@@ -195,6 +195,8 @@ class Pool:
         """Returns a sales report row for IRS form 8949 if the object is closed."""
         if self.closed:
             return {
+                "Asset Sold": self.asset.ticker,
+                "Amount": self.amount,
                 "Description of Property": f"{self.amount} of {self.asset.ticker}",
                 "Date Acquired (Mo., day, yr.)": date_to_str(
                     self.purchase_date, kind="irs"
@@ -311,21 +313,34 @@ class PoolRegistry:
     @property
     def shorts(self):
         """Short-term holding pools."""
-        return PoolRegistry([pool for pool in self.closed_pools if pool.holdings_type])
+        return PoolRegistry(
+            [
+                pool
+                for pool in self.closed_pools
+                if pool.holdings_type and pool.asset.fungible
+            ]
+        )
 
     @property
     def longs(self):
         """Long-term holding pools."""
         return PoolRegistry(
-            [pool for pool in self.closed_pools if not pool.holdings_type]
+            [
+                pool
+                for pool in self.closed_pools
+                if (not pool.holdings_type) and pool.asset.fungible
+            ]
         )
 
     @property
     def nfts(self):
-        """Sales of collectibles/non-fungible tokens."""
-        return PoolRegistry(
-            [pool for pool in self.closed_pools if not pool.asset.fungible]
-        )
+        """Pools with collectibles/non-fungible tokens."""
+        return PoolRegistry([pool for pool in self if not pool.asset.fungible])
+
+    @property
+    def tokens(self):
+        """Pools with fungible tokens."""
+        return PoolRegistry([pool for pool in self if pool.asset.fungible])
 
     @property
     def proceeds(self) -> float:
@@ -389,6 +404,18 @@ class PoolRegistry:
     def idx_for_id(self, id: uuid):
         """Returns the index (as currently sorted) within the `pools` list of the pool with id `id`."""
         return ([pool.id for pool in self]).index(id)
+
+    def by_year(self, year: int, by: str = "sale"):
+        """Returns pools whose purchase or sale date was in the `year` specified.`"""
+        if by.lower() == "sale":
+            pool_reg = PoolRegistry(
+                pools=[pool for pool in self if pool.sale_date.year == year]
+            )
+        if by.lower() == "purchase":
+            pool_reg = PoolRegistry(
+                pools=[pool for pool in self if pool.purchase_date.year == year]
+            )
+        return pool_reg
 
     def pools_with(
         self,
@@ -532,3 +559,6 @@ def date_to_str(date: datetime.datetime, kind: str = "default"):
         date_str = date.strftime("%Y/%m/%d %H:%M:%S")
 
     return date_str
+
+
+# %%
