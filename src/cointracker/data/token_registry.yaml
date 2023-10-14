@@ -233,11 +233,11 @@ SNT:
   fungible: true
   name: Status
   ticker: SNT
-SOCIETY:
+SOC:
   decimals: 14
   fungible: true
   name: Society
-  ticker: SOCIETY
+  ticker: SOC
 STORJ:
   decimals: 14
   fungible: true
