@@ -317,7 +317,7 @@ class PoolRegistry:
             [
                 pool
                 for pool in self.closed_pools
-                if pool.holdings_type and pool.asset.fungible
+                if (not pool.holdings_type) and pool.asset.fungible
             ]
         )
 
@@ -328,7 +328,7 @@ class PoolRegistry:
             [
                 pool
                 for pool in self.closed_pools
-                if (not pool.holdings_type) and pool.asset.fungible
+                if pool.holdings_type and pool.asset.fungible
             ]
         )
 
