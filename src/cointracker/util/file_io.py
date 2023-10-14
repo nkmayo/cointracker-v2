@@ -199,17 +199,21 @@ def export_pool_reg(
     iso: bool = True,
     kind: str = "default",
     consolidate: bool = False,
+    by_date: str = "both",
 ) -> None:
     if ".xlsx" not in filename:
         filename = filename + ".xlsx"
     filepath = cfg.paths.data / filename
 
     if consolidate:
-        pool_reg = consolidate_pool_reg(pool_reg=pool_reg)
         if kind not in ["sales_report", "irs", "tax", "8949"]:
             warnings.warn(
                 "Non-report style data being produced with consolidated pool registry"
             )
+        if by_date == "both" or by_date == "double":
+            pool_reg = consolidate_pool_reg(pool_reg=pool_reg, by_date="purchase")
+            by_date = "sale"
+        pool_reg = consolidate_pool_reg(pool_reg=pool_reg, by_date=by_date)
 
     df = pool_reg.to_df(ascending=True, kind=kind)
 
