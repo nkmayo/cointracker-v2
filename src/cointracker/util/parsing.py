@@ -299,7 +299,7 @@ def pool_reg_by_type(pool_reg: PoolRegistry) -> dict:
     pool_dict = {}
     pool_dict["shorts"] = pool_reg.shorts
     pool_dict["longs"] = pool_reg.longs
-    pool_dict["collectibles"] = pool_reg.nfts
+    pool_dict["collectibles"] = pool_reg.nfts.closed_pools
 
     return pool_dict
 
@@ -414,16 +414,16 @@ def orderbook_header():
     ]
 
 
-def consolidate_pool_reg(pool_reg: PoolRegistry) -> PoolRegistry:
+def consolidate_pool_reg(pool_reg: PoolRegistry, by_date: str = "sale") -> PoolRegistry:
     """Warning: Some information unique to pools is discarded during consolidation."""
-    uuid_groups = similar_pools(pool_reg=pool_reg)
+    uuid_groups = similar_pools(pool_reg=pool_reg, by_date=by_date)
     all_uuids = [id for group in uuid_groups for id in group]
-    consolidated_reg = PoolRegistry(
+    wont_consolidate = PoolRegistry(
         pools=[pool for pool in pool_reg if pool.id not in all_uuids]
     )
+    consolidated_reg = PoolRegistry()
     for group in uuid_groups:
         pool_group = PoolRegistry([pool for pool in pool_reg if pool.id in group])
-        print(pool_group)
         consolidated_pool = pool_group[0].copy()
         for i, pool in enumerate(pool_group):
             if i > 0:
@@ -461,6 +461,12 @@ def consolidate_pool_reg(pool_reg: PoolRegistry) -> PoolRegistry:
 
         consolidated_reg = consolidated_reg + consolidated_pool
 
+    assert consolidated_reg.nfts.is_empty, "NFT pools shouldn't be consolidated."
+
+    consolidated_reg = (
+        consolidated_reg + wont_consolidate
+    )  # merge with the pools that wont consolidate
+
     assert (
         pool_reg.net_gain == consolidated_reg.net_gain
     ), "Consolidated pool registry should have same net gain as before consolidation"
@@ -473,47 +479,76 @@ def consolidate_pool_reg(pool_reg: PoolRegistry) -> PoolRegistry:
     return consolidated_reg
 
 
-def similar_pools(pool_reg: PoolRegistry) -> set[list[uuid.UUID]]:
-    """For now only consider sale pools..."""
-    pool_reg = pool_reg.closed_pools
+def similar_pools(
+    pool_reg: PoolRegistry, by_date: str = "sale"
+) -> set[list[uuid.UUID]]:
+    """For now only consider sale pools that aren't nfts...
+    TODO: This doesn't seem to work for consolidation. Figure out how to consolidate pools with the same purchase_date too
+    """
+    subset_reg = pool_reg.tokens.closed_pools
     uuid_groups = []
-    for ticker in pool_reg.tickers:
-        asset_pools = pool_reg[ticker]
+    for ticker in subset_reg.tickers:
+        asset_pools = subset_reg[ticker]
         asset_pools_washes = asset_pools.washes
-
         asset_pools_washes_shorts = asset_pools_washes.shorts
         for pool in asset_pools_washes_shorts:
-            pool_group = asset_pools_washes_shorts.pools_with(
-                sale_date=pool.sale_date, explicit_date=False
-            )
+            if by_date.lower() == "sale":
+                pool_group = asset_pools_washes_shorts.pools_with(
+                    sale_date=pool.sale_date, explicit_date=False
+                )
+            elif by_date.lower() == "purchase":
+                pool_group = asset_pools_washes_shorts.pools_with(
+                    purchase_date=pool.purchase_date, explicit_date=False
+                )
+            else:
+                raise ValueError("Unrecognized `by_date` string provided.")
             group = {pool.id for pool in pool_group}
             if (len(group) > 1) and (group not in uuid_groups):
                 uuid_groups.append(group)
 
         asset_pools_washes_longs = asset_pools_washes.longs
         for pool in asset_pools_washes_longs:
-            pool_group = asset_pools_washes_longs.pools_with(
-                sale_date=pool.sale_date, explicit_date=False
-            )
+            if by_date.lower() == "sale":
+                pool_group = asset_pools_washes_longs.pools_with(
+                    sale_date=pool.sale_date, explicit_date=False
+                )
+            elif by_date.lower() == "purchase":
+                pool_group = asset_pools_washes_longs.pools_with(
+                    purchase_date=pool.purchase_date, explicit_date=False
+                )
+            else:
+                raise ValueError("Unrecognized `by_date` string provided.")
             group = {pool.id for pool in pool_group}
             if (len(group) > 1) and (group not in uuid_groups):
                 uuid_groups.append(group)
-
         asset_pools_not_washes = asset_pools.not_washes
         asset_pools_not_washes_shorts = asset_pools_not_washes.shorts
         for pool in asset_pools_not_washes_shorts:
-            pool_group = asset_pools_not_washes_shorts.pools_with(
-                sale_date=pool.sale_date, explicit_date=False
-            )
+            if by_date.lower() == "sale":
+                pool_group = asset_pools_not_washes_shorts.pools_with(
+                    sale_date=pool.sale_date, explicit_date=False
+                )
+            elif by_date.lower() == "purchase":
+                pool_group = asset_pools_not_washes_shorts.pools_with(
+                    purchase_date=pool.purchase_date, explicit_date=False
+                )
+            else:
+                raise ValueError("Unrecognized `by_date` string provided.")
             group = {pool.id for pool in pool_group}
             if (len(group) > 1) and (group not in uuid_groups):
                 uuid_groups.append(group)
-
         asset_pools_not_washes_longs = asset_pools_not_washes.longs
         for pool in asset_pools_not_washes_longs:
-            pool_group = asset_pools_not_washes_longs.pools_with(
-                sale_date=pool.sale_date, explicit_date=False
-            )
+            if by_date.lower() == "sale":
+                pool_group = asset_pools_not_washes_longs.pools_with(
+                    sale_date=pool.sale_date, explicit_date=False
+                )
+            elif by_date.lower() == "purchase":
+                pool_group = asset_pools_not_washes_longs.pools_with(
+                    purchase_date=pool.purchase_date, explicit_date=False
+                )
+            else:
+                raise ValueError("Unrecognized `by_date` string provided.")
             group = {pool.id for pool in pool_group}
             if (len(group) > 1) and (group not in uuid_groups):
                 uuid_groups.append(group)
