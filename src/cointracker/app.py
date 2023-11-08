@@ -6,12 +6,14 @@ from cointracker.process.execute import execute_orderbook
 from cointracker.util.file_io import (
     export_pool_reg,
     load_excel_orderbook,
+    load_excel_pool_registry,
 )
 
 
 def run():
-    ob = load_excel_orderbook(None, "Combined")
-    pool_reg_washes = execute_orderbook(orderbook=ob, pool_reg=None)
+    pool_reg_washes = load_excel_pool_registry(sheetname="All Pools")
+    # ob = load_excel_orderbook(None, "Combined")
+    # pool_reg_washes = execute_orderbook(orderbook=ob, pool_reg=None)
 
     export_pool_reg(pool_reg=pool_reg_washes, filename=f"2022_EOY_All_Pools")
 
@@ -30,5 +32,5 @@ def run():
                     filename=f"{year}_{key}_irs_consolidated",
                     kind="irs",
                     consolidate=True,
-                    by_date="double",
+                    by_date="sale",
                 )

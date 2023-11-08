@@ -299,7 +299,6 @@ def pool_reg_by_type(pool_reg: PoolRegistry) -> dict:
     pool_dict = {}
     pool_dict["shorts"] = pool_reg.shorts
     pool_dict["longs"] = pool_reg.longs
-    pool_dict["collectibles"] = pool_reg.nfts.closed_pools
 
     return pool_dict
 

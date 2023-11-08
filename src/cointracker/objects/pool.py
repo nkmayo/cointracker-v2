@@ -177,16 +177,20 @@ class Pool:
                 "Asset Sold": self.asset.ticker,
                 "Purchase Date": date_to_str(self.purchase_date, kind="sales report"),
                 "Sale Date": date_to_str(self.sale_date, kind="sales report"),
-                "Amount": self.amount,
+                "Amount": np.around(self.amount, decimals=6),
                 "Spot Price (USD)": self.sale_value_fiat / self.amount,
                 "Fee": self.sale_fee_fiat,
                 "Holding Period": self.holding_period.days,
                 "Short/Long": self.holdings_type_str,
-                "Proceeds": self.proceeds,
-                "Cost Basis": self.cost_basis,
-                "Wash Sale": "W" if self.is_wash else "",
+                "Proceeds": np.around(self.proceeds, decimals=2),
+                "Cost Basis": np.around(self.cost_basis, decimals=2),
+                "Adjustment Code": "W"
+                if self.is_wash
+                else "C"
+                if not self.asset.fungible
+                else "",
                 "Disallowed Loss": self.wash.disallowed_loss_fiat,
-                "Net Gain": self.net_gain,
+                "Net Gain": np.around(self.net_gain, decimals=2),
             }
         else:
             return None
@@ -195,18 +199,20 @@ class Pool:
         """Returns a sales report row for IRS form 8949 if the object is closed."""
         if self.closed:
             return {
-                "Asset Sold": self.asset.ticker,
-                "Amount": self.amount,
-                "Description of Property": f"{self.amount} of {self.asset.ticker}",
+                "Description of Property": f"{np.around(self.amount, decimals=6)} of {self.asset.ticker}",
                 "Date Acquired (Mo., day, yr.)": date_to_str(
                     self.purchase_date, kind="irs"
                 ),
                 "Date Sold (Mo., day, yr.)": date_to_str(self.sale_date, kind="irs"),
-                "Proceeds": self.proceeds,
-                "Cost Basis": self.cost_basis,
-                "Adjustment Code": "W" if self.is_wash else "",
+                "Proceeds": np.around(self.proceeds, decimals=2),
+                "Cost Basis": np.around(self.cost_basis, decimals=2),
+                "Adjustment Code": "W"
+                if self.is_wash
+                else "C"
+                if not self.asset.fungible
+                else "",
                 "Amount of Adjustment": self.wash.disallowed_loss_fiat,
-                "Gain": self.net_gain,
+                "Gain": np.around(self.net_gain, decimals=2),
             }
         else:
             return None
@@ -314,23 +320,13 @@ class PoolRegistry:
     def shorts(self):
         """Short-term holding pools."""
         return PoolRegistry(
-            [
-                pool
-                for pool in self.closed_pools
-                if (not pool.holdings_type) and pool.asset.fungible
-            ]
+            [pool for pool in self.closed_pools if not pool.holdings_type]
         )
 
     @property
     def longs(self):
         """Long-term holding pools."""
-        return PoolRegistry(
-            [
-                pool
-                for pool in self.closed_pools
-                if pool.holdings_type and pool.asset.fungible
-            ]
-        )
+        return PoolRegistry([pool for pool in self.closed_pools if pool.holdings_type])
 
     @property
     def nfts(self):
@@ -550,7 +546,7 @@ def date_to_str(date: datetime.datetime, kind: str = "default"):
     if date is None:
         date_str = "None"
     elif date.microsecond == VARIOUS_DATES_MICROSECOND:
-        date_str = "Various Dates"
+        date_str = "Various"
     elif kind.lower() == "sales report":
         date_str = date.strftime("%Y/%m/%d")
     elif kind.lower() in ["irs", "tax", "8949"]:
