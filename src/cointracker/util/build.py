@@ -3,12 +3,10 @@ from tkinter import filedialog
 from pathlib import Path
 from cointracker.objects.asset import Asset, AssetRegistry
 from cointracker.util.parsing import (
-    load_asset_registry,
     parse_orderbook,
     split_markets_str,
 )
-
-registry = load_asset_registry()
+from cointracker.util.file_io import load_asset_registry
 
 
 def build_dummy_assets_from_orderbook_file(
@@ -22,7 +20,7 @@ def build_dummy_assets_from_orderbook_file(
 
     orderbook_df = parse_orderbook(filename=filepath, sheet=sheet)
     semi_unique_assets = orderbook_df["Market"].drop_duplicates()
-    asset_reg = []
+    asset_list = []
     unique_assets = []
     dummy_decimals = 14
     for assets in semi_unique_assets.values:
@@ -59,7 +57,7 @@ def build_dummy_assets_from_orderbook_file(
         for name in known_nft_names:
             if name in asset_str.lower():
                 fungible = False
-        asset_reg.append(
+        asset_list.append(
             Asset(
                 name=asset_str,
                 ticker=asset_str.upper(),
@@ -68,7 +66,12 @@ def build_dummy_assets_from_orderbook_file(
             )
         )
 
-    return AssetRegistry(asset_reg)
+    asset_reg = load_asset_registry()
+    for asset in asset_list:
+        if asset not in asset_reg:
+            asset_reg = asset_reg + asset
+
+    return asset_reg
 
 
 # %%
