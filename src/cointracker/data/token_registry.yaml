@@ -33,6 +33,11 @@ ATUSD:
   fungible: true
   name: Aave TUSD
   ticker: ATUSD
+AXO:
+  decimals: 14
+  fungible: true
+  name: Axo
+  ticker: AXO
 BAND:
   decimals: 14
   fungible: true
@@ -93,6 +98,11 @@ DASH:
   fungible: true
   name: Dash
   ticker: DASH
+DJED:
+  decimals: 14
+  fungible: true
+  name: Djed
+  ticker: DJED
 DPI:
   decimals: 14
   fungible: true
@@ -133,6 +143,11 @@ ICX:
   fungible: true
   name: Icon
   ticker: ICX
+INDY:
+  decimals: 14
+  fungible: true
+  name: Indigo
+  ticker: INDY
 INS:
   decimals: 14
   fungible: true
@@ -143,6 +158,16 @@ IOTA:
   fungible: true
   name: IOTA
   ticker: IOTA
+IUSD:
+  decimals: 14
+  fungible: true
+  name: Indigo USD
+  ticker: IUSD
+JPG:
+  decimals: 14
+  fungible: true
+  name: JPG
+  ticker: JPG
 LEND:
   decimals: 14
   fungible: true
@@ -153,6 +178,11 @@ LINK:
   fungible: true
   name: Chainlink
   ticker: LINK
+LQ:
+  decimals: 14
+  fungible: true
+  name: Liqwid
+  ticker: LQ
 LRC:
   decimals: 14
   fungible: true
@@ -223,6 +253,11 @@ SALT:
   fungible: true
   name: SALT
   ticker: SALT
+SHEN:
+  decimals: 14
+  fungible: true
+  name: Shen
+  ticker: SHEN
 SHIB:
   decimals: 14
   fungible: true
@@ -238,6 +273,11 @@ SOC:
   fungible: true
   name: Society
   ticker: SOC
+SPF:
+  decimals: 14
+  fungible: true
+  name: Spectrum Finance
+  ticker: SPF
 STORJ:
   decimals: 14
   fungible: true
@@ -258,6 +298,11 @@ TRB:
   fungible: true
   name: Tellor Tributes
   ticker: TRB
+TRX:
+  decimals: 14
+  fungible: true
+  name: Tron
+  ticker: TRX
 TUSD:
   decimals: 14
   fungible: true
