@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from tqdm import tqdm
 from cointracker.objects.pool import Pool, PoolRegistry
 from cointracker.process.conversions import split_pool
 
@@ -20,7 +21,9 @@ def execute_washes(pool_reg: PoolRegistry) -> PoolRegistry:
     Optionally, an existing set of `pools` can be specified to pull in previous data.
 
     """
+    progress = tqdm()
     while unmatched_washes(pool_reg=pool_reg):
+        progress.update()
         candidate_pools = PoolRegistry(
             [pool for pool in pool_reg if pool.potential_wash]
         )
