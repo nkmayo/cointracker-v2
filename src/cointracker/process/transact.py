@@ -11,7 +11,6 @@ from cointracker.process.conversions import fiat_equivalent
 def execute_order(
     order: Order, pools: PoolRegistry, strategy: OrderingStrategy
 ) -> PoolRegistry:
-    print(f"\n\n")
     logging.debug(f"executing order {order} with strategy {strategy}")
     logging.debug(f"---Initial pools list: {pools}")
     buy_txn, sell_txn = split_order(order=order)
@@ -59,7 +58,7 @@ def execute_sell(
     sell_txn: Transaction, pool_reg: PoolRegistry, strategy: OrderingStrategy
 ) -> PoolRegistry:
     print(
-        f"entered execute_sell of asset {sell_txn.asset.ticker} and amount {sell_txn.amount}:\n{pool_reg}"
+        f"\nentered execute_sell of asset {sell_txn.asset.ticker} and amount {sell_txn.amount}:\n{pool_reg}"
     )
     """Executes the sale side of an order using the specified `strategy`."""
     candidate_pools = pool_reg[sell_txn.asset.ticker].open_pools
@@ -165,8 +164,9 @@ def execute_sell(
         assert_test = sell_txn.amount_fiat * matched_fraction
         sell_txn.amount = matched_pool.amount
 
-        assert np.round(sell_txn.amount_fiat, decimals=2) == np.round(
-            assert_test, decimals=2
+        within_1_cent = np.abs(sell_txn.amount_fiat - assert_test) < 0.01
+        assert (
+            within_1_cent
         ), "sale_cost_fiat should be the previous amount * matched_fraction"
 
         matched_pool.sale_date = sell_txn.date
