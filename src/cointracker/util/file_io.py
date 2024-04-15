@@ -37,7 +37,7 @@ def load_excel_orderbook(file: str, sheetname: str = "Sheet1"):
     registry = load_asset_registry()
     if file is None:
         filename = filedialog.askopenfilename(
-            title="Select pool registry file",
+            title="Select order book transactions file",
             filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")),
         )
     else:
@@ -86,9 +86,9 @@ def load_v1_purchase_pool(
                 "sale_date": None,
                 "sale_value_fiat": None,
                 "sale_fee_fiat": None,
-                "triggered_by_id": row["Initiates Wash"]
-                if row["Initiates Wash"] != 0
-                else None,
+                "triggered_by_id": (
+                    row["Initiates Wash"] if row["Initiates Wash"] != 0 else None
+                ),
                 "triggers_id": None,  # Can't tell which pool it may have triggered
                 "disallowed_loss_fiat": row["Modified Cost Basis"] - row["Cost Basis"],
                 "holding_period_modifier": row["Holding Period Modifier"],
@@ -127,9 +127,9 @@ def load_v1_sale_pool(filepath: Path = None, sheetname: str = "Sheet1"):
                 "sale_date": row["Sale Date"],
                 "sale_value_fiat": row["Proceeds"] + row["Fee USD"],
                 "sale_fee_fiat": row["Fee USD"],
-                "triggered_by_id": row["Wash Pool ID"]
-                if row["Wash Pool ID"] != 0
-                else None,
+                "triggered_by_id": (
+                    row["Wash Pool ID"] if row["Wash Pool ID"] != 0 else None
+                ),
                 "triggers_id": None,  # Can't tell which pool it may have triggered
                 "disallowed_loss_fiat": row["Disallowed Loss"],
                 "holding_period_modifier": row[
