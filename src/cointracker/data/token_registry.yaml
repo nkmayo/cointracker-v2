@@ -8,6 +8,21 @@ ADA:
   fungible: true
   name: Cardano
   ticker: ADA
+ADAINDYSSLP:
+  decimals: 14
+  fungible: true
+  name: ADA-INDY SundaeSwap LP
+  ticker: ADAINDYSSLP
+ADASHENSSLP:
+  decimals: 14
+  fungible: true
+  name: ADA-SHEN SundaeSwap LP
+  ticker: ADASHENSSLP
+ADASUNDAESSLP:
+  decimals: 14
+  fungible: true
+  name: ADA-SUNDAE SundaeSwap LP
+  ticker: ADASUNDAESSLP
 ALGO:
   decimals: 14
   fungible: true
@@ -103,6 +118,11 @@ DJED:
   fungible: true
   name: Djed
   ticker: DJED
+DJEDIUSDSSLP:
+  decimals: 14
+  fungible: true
+  name: DJED-iUSD SundaeSwap LP
+  ticker: DJEDIUSDSSLP
 DPI:
   decimals: 14
   fungible: true
